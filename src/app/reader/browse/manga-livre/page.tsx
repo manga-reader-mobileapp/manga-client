@@ -4,12 +4,14 @@ import { getUniqueSource } from "@/api/sources/getUniqueSource";
 import { fetchMangasMangaLivre } from "@/api/sources/manga-livre/fetchMangas";
 import PopoverPage from "@/components/source/popover/page";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { IoIosArrowDropleftCircle } from "react-icons/io";
 
 type Manga = {
   title: string;
   img: string;
   chapters: string;
   url: string;
+  description: string;
 };
 
 export default function MangaLivrePage() {
@@ -98,9 +100,17 @@ export default function MangaLivrePage() {
             title={manga.title || ""}
             img={manga.img || ""}
             chapters={manga.chapters || ""}
+            description={manga.description || ""}
           />
         ))}
       </div>
+
+      <button
+        className="fixed bottom-4 left-4 z-50 bg-white cursor-pointer text-black px-2 py-2 rounded-2xl shadow-lg transition-colors duration-200 hover:bg-white/80"
+        onClick={() => window.history.back()}
+      >
+        <IoIosArrowDropleftCircle size={24} />
+      </button>
 
       {/* Observer para scroll infinito */}
       <div

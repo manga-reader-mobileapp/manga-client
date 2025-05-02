@@ -1,9 +1,10 @@
 "use client";
 
-import { getListCategory } from "@/api/login/category/getAll";
+import { getListCategory } from "@/api/category/getAll";
+import { getMangaByCategories } from "@/api/library/getMangaByCategories";
 import MangaList from "@/components/manga/mangaList";
 import BottomMenu from "@/components/menu/bottomMenu";
-import { Category } from "@/type/types";
+import { Category, Manga } from "@/type/types";
 import { useEffect, useState } from "react";
 import { FaSearch } from "react-icons/fa";
 import { MdFilterList } from "react-icons/md";
@@ -11,6 +12,8 @@ import { MdFilterList } from "react-icons/md";
 export default function LibraryPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [categories, setCategories] = useState<Category[]>([]);
+
+  const [mangaList, setMangaList] = useState<Manga[]>([]);
 
   useEffect(() => {
     const getAll = async () => {
@@ -27,6 +30,22 @@ export default function LibraryPage() {
 
     getAll();
   }, []);
+
+  useEffect(() => {
+    const getMangas = async () => {
+      if (selectedCategory === "") return;
+
+      setMangaList([]);
+
+      const response = await getMangaByCategories(selectedCategory);
+
+      if (response) {
+        setMangaList(response);
+      }
+    };
+
+    getMangas();
+  }, [selectedCategory]);
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-neutral-900 text-white w-full">
@@ -77,8 +96,8 @@ export default function LibraryPage() {
       </div>
 
       {/* Conteúdo com scroll vertical */}
-      <div className="flex-1 overflow-y-auto px-5 pb-20">
-        <MangaList mangaData={[]} />
+      <div className="flex-1 overflow-y-auto px-2 pb-20">
+        <MangaList mangaData={mangaList} />
       </div>
 
       {/* BottomMenu fixo */}

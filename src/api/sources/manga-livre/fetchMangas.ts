@@ -23,6 +23,7 @@ export async function fetchMangasMangaLivre(page: number, url: string) {
       img: string;
       chapters: string;
       url: string;
+      description: string;
     }[] = [];
 
     $(".manga__item").each((_, element) => {
@@ -42,7 +43,9 @@ export async function fetchMangasMangaLivre(page: number, url: string) {
       // Extrair apenas o número do capítulo
       const chapters = chapterText.replace(/[^0-9]/g, "");
 
-      mangas.push({ title, img, chapters, url: mangaUrl });
+      const description = $(element).find(".manga-excerpt p").text().trim();
+
+      mangas.push({ title, img, chapters, url: mangaUrl, description });
     });
 
     return mangas;

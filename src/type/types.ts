@@ -15,3 +15,16 @@ export type User = {
   email: string;
   created_at: Date;
 };
+
+export type Manga = {
+  id: string;
+  title: string;
+  description: string;
+  img: string;
+  chapters: number;
+  source: string;
+  sourceUrl: string;
+  url: string;
+  isFavorite?: boolean;
+  lastChapter?: number;
+};
