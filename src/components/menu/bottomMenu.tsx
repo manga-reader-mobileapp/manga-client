@@ -21,7 +21,7 @@ export default function BottomMenu() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-[#140B1C] border-t border-neutral-800 flex justify-around py-2 z-50">
+    <nav className="bg-[#140B1C] border-t border-neutral-800 flex justify-around py-2">
       {menuItems.map(({ label, path, icon: Icon }) => {
         const active = pathname === path;
         return (

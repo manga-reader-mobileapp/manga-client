@@ -112,6 +112,23 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+::-webkit-scrollbar {
+  display: block !important;
+  width: 4px;
+  height: 4px;
+  background-color: #accfff46;
+}
+
+::-webkit-scrollbar-track {
+  border-radius: 10px;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: #ad46ff;
+  border-radius: 10px;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

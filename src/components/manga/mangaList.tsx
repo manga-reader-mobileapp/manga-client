@@ -3,7 +3,6 @@
 import MangaCard from "./mangaCard";
 
 export type MangaCardData = {
-  id: string;
   title: string;
   img: string;
   chapters: string;
@@ -25,9 +24,9 @@ export default function MangaList({
   return (
     <div className="max-h-[500px] scrollbar-thin scrollbar-thumb-purple-500 scrollbar-track-purple-200 rounded-md p-2">
       <div className="grid grid-cols-3 gap-2">
-        {mangaData.map((manga) => (
+        {mangaData.map((manga, i) => (
           <MangaCard
-            key={manga.id}
+            key={i}
             title={manga.title}
             img={manga.img}
             chapters={manga.chapters}

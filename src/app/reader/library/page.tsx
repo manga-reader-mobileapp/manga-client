@@ -1,7 +1,7 @@
 "use client";
 
-import { getListCategory } from "@/api/login/category/getAll copy";
-import MangaList from "@/components/manga/MangaList";
+import { getListCategory } from "@/api/login/category/getAll";
+import MangaList from "@/components/manga/mangaList";
 import BottomMenu from "@/components/menu/bottomMenu";
 import { Category } from "@/type/types";
 import { useEffect, useState } from "react";
@@ -29,21 +29,19 @@ export default function LibraryPage() {
   }, []);
 
   return (
-    <div className="bg-neutral-900 min-h-screen w-full pt-4 px-5 text-white">
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-4 justify-between">
+    <div className="flex flex-col h-screen overflow-hidden bg-neutral-900 text-white w-full">
+      {/* Header fixo */}
+      <div className="pt-4 px-5 flex items-center justify-between shrink-0">
         <h1 className="text-2xl">Library</h1>
-
         <div className="flex items-center gap-4">
           <FaSearch size={17} />
-
           <MdFilterList size={24} />
         </div>
       </div>
 
-      {/* Categories */}
-      <div className="overflow-x-auto mb-6">
-        <div className="flex gap-2">
+      {/* Tabs */}
+      <div className="px-5 overflow-x-auto shrink-0">
+        <div className="flex gap-2 py-4 min-w-max">
           {categories.map((category) => {
             const isSelected = selectedCategory === category.id;
             return (
@@ -78,121 +76,12 @@ export default function LibraryPage() {
         </div>
       </div>
 
-      {/* Manga List */}
-      <MangaList
-        mangaData={[
-          {
-            id: "1",
-            title: "Manga 1",
-            img: "https://picsum.photos/id/10/200/300",
-            chapters: "100",
-          },
-          {
-            id: "2",
-            title: "Manga 2",
-            img: "https://picsum.photos/id/10/200/300",
-            chapters: "100",
-          },
-          {
-            id: "3",
-            title: "Manga 3",
-            img: "https://picsum.photos/id/10/200/300",
-            chapters: "100",
-          },
-          {
-            id: "4",
-            title: "Manga 4",
-            img: "https://picsum        .photos/id/10/200/300",
-            chapters: "100",
-          },
-          {
-            id: "5",
-            title: "Manga 5",
-            img: "https://picsum.photos/id/10/200/300",
-            chapters: "100",
-          },
-          {
-            id: "6",
-            title: "Manga 6",
-            img: "https://picsum.photos/id/10/200/300",
-            chapters: "100",
-          },
-          {
-            id: "7",
-            title: "Manga 7",
-            img: "https://picsum.photos/id/10/200/300",
-            chapters: "100",
-          },
-          {
-            id: "8",
-            title: "Manga 8",
-            img: "https://picsum        .photos/id/10/200/300",
-            chapters: "100",
-          },
-          {
-            id: "9",
-            title: "Manga 9",
-            img: "https://picsum.photos/id/10/200/300",
-            chapters: "100",
-          },
-          {
-            id: "0",
-            title: "Manga 0",
-            img: "https://picsum.photos/id/10/200/300",
-            chapters: "100",
-          },
-          {
-            id: "1",
-            title: "Manga 1",
-            img: "https://picsum.photos/id/10/200/300",
-            chapters: "100",
-          },
-          {
-            id: "2",
-            title: "Manga 2",
-            img: "https://picsum.photos/id/10/200/300",
-            chapters: "100",
-          },
-          {
-            id: "3",
-            title: "Manga 3",
-            img: "https://picsum.photos/id/10/200/300",
-            chapters: "100",
-          },
-          {
-            id: "4",
-            title: "Manga 4",
-            img: "https://picsum        .photos/id/10/200/300",
-            chapters: "100",
-          },
-          {
-            id: "5",
-            title: "Manga 5",
-            img: "https://picsum.photos/id/10/200/300",
-            chapters: "100",
-          },
-          {
-            id: "6",
-            title: "Manga 6",
-            img: "https://picsum.photos/id/10/200/300",
-            chapters: "100",
-          },
-          {
-            id: "7",
-            title: "Manga 7",
-            img: "https://picsum.photos/id/10/200/300",
-            chapters: "100",
-          },
-          {
-            id: "8",
-            title: "Manga 8",
-            img: "https://picsum        .photos/id/10/200/300",
-            chapters: "100",
-          },
-        ]}
-      />
+      {/* Conteúdo com scroll vertical */}
+      <div className="flex-1 overflow-y-auto px-5 pb-20">
+        <MangaList mangaData={[]} />
+      </div>
 
-      {/* Pagination */}
+      {/* BottomMenu fixo */}
       <BottomMenu />
     </div>
   );
