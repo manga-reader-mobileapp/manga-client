@@ -24,7 +24,14 @@ export type Manga = {
   chapters: number;
   source: string;
   sourceUrl: string;
+  sourceName?: string;
   url: string;
   isFavorite?: boolean;
   lastChapter?: number;
+};
+
+export type Chapter = {
+  title: string;
+  url: string;
+  date: string;
 };

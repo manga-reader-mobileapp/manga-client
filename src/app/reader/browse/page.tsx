@@ -36,7 +36,7 @@ export default function BrowsePage() {
           >
             <div className="flex items-center gap-4">
               <img
-                src={origin.img}
+                src={origin.img || "/images/noimage.png"}
                 alt="img"
                 className="w-12 h-12 object-cover rounded-2xl"
               />

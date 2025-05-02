@@ -20,7 +20,7 @@ export default function MangaCard({
     >
       {/* Imagem com efeito de escurecer no hover */}
       <img
-        src={img}
+        src={img || "/images/noimage.png"}
         alt={title}
         className="w-full h-full object-cover transition-all duration-200 group-hover:brightness-75"
       />
