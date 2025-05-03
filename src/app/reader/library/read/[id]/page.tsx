@@ -1,8 +1,11 @@
 "use client";
 
 import { getUniqueManga } from "@/api/library/unique/getUniqueManga";
+import { favoriteSavedManga } from "@/api/sources/geral/favoriteSavedManga";
+import { unfavoriteManga } from "@/api/sources/geral/unfavoriteManga";
 import { fetchChaptersFromMangalivre } from "@/api/sources/manga-livre/fetchChapters";
 import { Button } from "@/components/ui/button";
+import { extractChapterNumber } from "@/services/extractChapterNumber";
 import { replaceDotsWithHyphens } from "@/services/replaceDotsWithHyphens";
 import { Chapter, Manga } from "@/type/types";
 import { useParams, useRouter } from "next/navigation";
@@ -15,19 +18,7 @@ import {
   IoHeartOutline,
   IoHeartSharp,
 } from "react-icons/io5";
-
-function extractChapterNumber(chapterTitle: string): number {
-  // Regex para encontrar números no título
-  const matches = chapterTitle.match(/\d+(\.\d+)?/);
-
-  if (matches && matches.length > 0) {
-    // Converte o número encontrado para tipo number
-    return parseFloat(matches[0]);
-  }
-
-  // Retorna 0 se não encontrar um número
-  return 0;
-}
+import { toast } from "sonner";
 
 export default function MangaPage() {
   const params = useParams();
@@ -45,7 +36,7 @@ export default function MangaPage() {
     title: "",
     description: "",
     img: "",
-    chapters: 0,
+    chapters: "0",
     source: "",
     sourceUrl: "",
     url: "",
@@ -54,12 +45,26 @@ export default function MangaPage() {
 
   const [chapters, setChapters] = useState<Chapter[]>([]);
 
+  const [lastChapter, setLastChapter] = useState<{
+    number: number;
+    raw: string;
+  } | null>(null);
+
+  const [firstChapter, setFirstChapter] = useState<{
+    number: number;
+    raw: string;
+  } | null>(null);
+
   const getChapters = async (url: string) => {
     if (!manga.url) return;
     const response = await fetchChaptersFromMangalivre(url, manga.url);
 
     if (!response) return;
     setChapters(response);
+
+    setFirstChapter(extractChapterNumber(response[response.length - 1].title));
+
+    setLastChapter(extractChapterNumber(response[0].title));
   };
 
   useEffect(() => {
@@ -81,14 +86,14 @@ export default function MangaPage() {
   }, [mangaId, back, manga.url]);
 
   return (
-    <div className="min-h-screen bg-neutral-900 text-white flex flex-col">
+    <div className="min-h-screen bg-neutral-900 text-white flex flex-col w-full">
       {/* Fixed Top Section */}
       <div className="p-4 space-y-4">
         {/* Top Bar */}
         <div className="flex items-center justify-between">
           <button
             className="text-white text-2xl cursor-pointer"
-            onClick={() => window.history.back()}
+            onClick={() => push(`/reader/library`)}
           >
             <IoIosArrowDropleftCircle />
           </button>
@@ -112,27 +117,61 @@ export default function MangaPage() {
             </p>
 
             <div className="flex gap-4 mt-2">
-              <Button
-                variant={"ghost"}
-                className="text-red-500 text-xl"
-                disabled={
-                  manga.lastChapter
-                    ? manga.chapters <= manga.lastChapter
-                    : false
-                }
-              >
-                {manga.isFavorite ? (
-                  <IoHeartSharp size={35} />
-                ) : (
-                  <IoHeartOutline />
-                )}
-              </Button>
+              {manga.isFavorite ? (
+                <IoHeartSharp
+                  className="text-red-500 text-2xl cursor-pointer"
+                  onClick={async () => {
+                    if (!manga.url) return;
+
+                    const response = await unfavoriteManga(
+                      { url: manga.url },
+                      manga.source
+                    );
+
+                    if (response) {
+                      setManga((prev) => {
+                        return {
+                          ...prev,
+                          isFavorite: false,
+                        };
+                      });
+                      return;
+                    }
+
+                    toast.error("Erro ao desfavoritar manga");
+                  }}
+                />
+              ) : (
+                <IoHeartOutline
+                  className="text-red-500 text-2xl cursor-pointer"
+                  onClick={async () => {
+                    const response = await favoriteSavedManga(mangaId);
+
+                    if (response) {
+                      setManga((prev) => {
+                        return {
+                          ...prev,
+                          isFavorite: true,
+                        };
+                      });
+
+                      return;
+                    }
+                    toast.error("Erro ao favoritar manga");
+                  }}
+                />
+              )}
               <button className="text-white text-xl">
                 <BsGlobe2
                   className="cursor-pointer"
-                  onClick={() =>
-                    window.open(manga.sourceUrl + manga.url, "_blank")
-                  }
+                  onClick={() => {
+                    if (manga.sourceName === "manga-livre") {
+                      window.open(
+                        manga.sourceUrl + "/manga/" + manga.url,
+                        "_blank"
+                      );
+                    }
+                  }}
                 />
               </button>
               <button className="text-white text-xl">
@@ -142,9 +181,73 @@ export default function MangaPage() {
           </div>
         </div>
 
-        <button className="bg-blue-600 text-white px-4 rounded-2xl w-full py-2 text-sm">
-          Ler próximo capítulo
-        </button>
+        {!!lastChapter?.raw && !!firstChapter?.raw ? (
+          lastChapter.raw === manga.lastChapter ? (
+            <Button
+              disabled
+              variant="default"
+              className=" text-white px-4 rounded-2xl w-full py-2 text-sm"
+            >
+              Sem próximo capitulo
+            </Button>
+          ) : (
+            <button
+              className="bg-blue-600 text-white px-4 rounded-2xl w-full py-2 text-sm cursor-pointer hover:bg-blue-500"
+              onClick={() => {
+                // Se não leu nenhum capítulo ainda
+                if (!manga.lastChapter) {
+                  push(
+                    `/reader/library/pages/${manga.sourceName}/${
+                      manga.url
+                    }/${replaceDotsWithHyphens(firstChapter.raw)}`
+                  );
+                  return;
+                }
+
+                // Já leu algum capítulo
+                const currentIndex = chapters.findIndex(
+                  (ch) =>
+                    extractChapterNumber(ch.title).raw === manga.lastChapter
+                );
+
+                // Se o capítulo atual não está na lista, fallback para o primeiro
+                if (currentIndex === -1) {
+                  push(
+                    `/reader/library/pages/${manga.sourceName}/${
+                      manga.url
+                    }/${replaceDotsWithHyphens(firstChapter.raw)}`
+                  );
+                  return;
+                }
+
+                // Pegar o próximo capítulo, se existir
+                const next = extractChapterNumber(
+                  chapters[currentIndex - 1].title
+                ).raw;
+
+                if (next) {
+                  push(
+                    `/reader/library/pages/${manga.sourceName}/${
+                      manga.url
+                    }/${replaceDotsWithHyphens(next)}`
+                  );
+                } else {
+                  alert("Você já está no último capítulo.");
+                }
+              }}
+            >
+              Ler próximo capítulo
+            </button>
+          )
+        ) : (
+          <Button
+            disabled
+            variant="default"
+            className=" text-white px-4 rounded-2xl w-full py-2 text-sm"
+          >
+            Carregando...
+          </Button>
+        )}
       </div>
 
       {/* Scrollable Chapters Section */}
@@ -159,7 +262,7 @@ export default function MangaPage() {
             const chapterNumber = extractChapterNumber(chapter.title);
 
             const readed = manga.lastChapter
-              ? chapterNumber <= manga.lastChapter
+              ? Number(chapterNumber.number) <= Number(manga.lastChapter)
               : false;
 
             return (
@@ -170,7 +273,7 @@ export default function MangaPage() {
                   push(
                     `/reader/library/pages/${manga.sourceName}/${
                       manga.url
-                    }/${replaceDotsWithHyphens(chapterNumber.toString())}`
+                    }/${replaceDotsWithHyphens(chapterNumber.raw)}`
                   );
                 }}
               >

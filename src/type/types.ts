@@ -21,13 +21,13 @@ export type Manga = {
   title: string;
   description: string;
   img: string;
-  chapters: number;
+  chapters: string;
   source: string;
   sourceUrl: string;
   sourceName?: string;
   url: string;
   isFavorite?: boolean;
-  lastChapter?: number;
+  lastChapter?: string;
 };
 
 export type Chapter = {

@@ -1,20 +1,18 @@
 "use client";
 
 import { getInfosPages } from "@/api/library/unique/getInfosPages";
+import { updateLastRead } from "@/api/library/unique/updateLastRead";
 import { fetchChaptersFromMangalivre } from "@/api/sources/manga-livre/fetchChapters";
 import { fetchPagesFromMangalivre } from "@/api/sources/manga-livre/fetchPages";
+import { extractChapterNumber } from "@/services/extractChapterNumber";
 import { replaceDotsWithHyphens } from "@/services/replaceDotsWithHyphens";
 import { Chapter, ObjectPages } from "@/type/types";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-
-function extractChapterNumber(title: string): number {
-  const match = title.match(/(\d+(\.\d+)?)/); // Captura 30 ou 30.5
-  return match ? parseFloat(match[0]) : 0;
-}
+import { toast } from "sonner";
 
 export default function MangaChapterViewer() {
-  const { back } = useRouter();
+  const { back, push } = useRouter();
 
   // Obter os parâmetros da URL
   const params = useParams();
@@ -34,9 +32,11 @@ export default function MangaChapterViewer() {
   const [manga, setManga] = useState<{
     chapters: number;
     title: string;
+    id: string;
   }>({
     chapters: 0,
     title: "",
+    id: "",
   });
 
   const getChapters = async (url: string) => {
@@ -87,38 +87,71 @@ export default function MangaChapterViewer() {
   }, [sourceId, mangaUrl, chapter]);
 
   function navigateChapter(direction: "next" | "prev"): string | null {
-    const currentNumber = extractChapterNumber(chapter);
+    const { number: currentNumber } = extractChapterNumber(chapter);
 
-    const chapterNumbers = chapters.map((ch) => ({
-      ...ch,
-      number: extractChapterNumber(ch.title),
-    }));
+    const chapterNumbers = chapters.map((ch) => {
+      const { raw, number } = extractChapterNumber(ch.title);
+      return {
+        ...ch,
+        rawNumber: raw,
+        number, // para ordenação
+      };
+    });
 
-    // Ordenar para garantir sequência
+    // Ordena por número (float), garantindo ordem crescente
     const sorted = chapterNumbers.sort((a, b) => a.number - b.number);
 
     const index = sorted.findIndex((ch) => ch.number === currentNumber);
-
     if (index === -1) return null;
 
     const nextIndex = direction === "next" ? index + 1 : index - 1;
-
     if (nextIndex < 0 || nextIndex >= sorted.length) return null;
 
-    console.log(sorted[nextIndex].url);
+    const nextChapter = sorted[nextIndex];
 
-    return sorted[nextIndex].url; // URL do próximo ou anterior
+    // Se for da fonte "manga-livre", monta a URL customizada
+    if (sourceId === "manga-livre") {
+      return `/reader/library/pages/manga-livre/${mangaUrl}/${replaceDotsWithHyphens(
+        nextChapter.rawNumber
+      )}`;
+    }
+
+    // Senão, usa a URL padrão do capítulo
+    return nextChapter.url;
   }
+
+  // Nova função para verificar se é o primeiro ou último capítulo
+  function isFirstOrLastChapter(): { isFirst: boolean; isLast: boolean } {
+    if (!chapters.length) return { isFirst: false, isLast: false };
+
+    const { number: currentNumber } = extractChapterNumber(chapter);
+
+    const chapterNumbers = chapters.map((ch) => {
+      const { number } = extractChapterNumber(ch.title);
+      return number;
+    });
+
+    // Ordena por número (float), garantindo ordem crescente
+    const sortedNumbers = [...chapterNumbers].sort((a, b) => a - b);
+
+    // Verifica se é o primeiro (menor número) ou último (maior número)
+    const isFirst = currentNumber === sortedNumbers[0];
+    const isLast = currentNumber === sortedNumbers[sortedNumbers.length - 1];
+
+    return { isFirst, isLast };
+  }
+
+  const { isFirst, isLast } = isFirstOrLastChapter();
 
   return (
     <div className="min-h-screen w-full bg-neutral-900 text-white flex flex-col">
       {isLoading ? (
-        <div className="flex justify-center items-center h-screen w-full">
+        <div className="flex justify-center items-center h-screen w-full bg-neutral-900">
           Carregando...
         </div>
       ) : (
         pages && (
-          <div className="flex flex-col gap-4 px-5 py-4 bg-neutral-900 pb-6">
+          <div className="flex flex-col gap-4  sm:px-2 md:px-16 lg:px-72 xl:px-96 py-4 bg-neutral-900 pb-6">
             {pages.images.map((page, index) => (
               <div
                 className="flex items-center justify-center bg-neutral-700 p-3 rounded-xl "
@@ -140,7 +173,7 @@ export default function MangaChapterViewer() {
           <div className="flex items-center justify-between">
             {/* Voltar */}
             <button
-              onClick={() => back()}
+              onClick={() => push(`/reader/library/read/${manga.id}`)}
               className="text-sm text-zinc-300 hover:text-white transition"
             >
               ⬅ Voltar
@@ -154,16 +187,52 @@ export default function MangaChapterViewer() {
             {/* Anterior / Próximo */}
             <div className="flex space-x-4">
               <button
-                // onClick={}
-                className="text-sm text-zinc-300 hover:text-white transition"
+                onClick={() => {
+                  const url = navigateChapter("prev");
+                  if (url) {
+                    push(url);
+
+                    return;
+                  }
+
+                  toast.error("Erro ao buscar capitulo anterior");
+                  push("reader/library");
+                }}
+                disabled={isFirst}
+                className={`text-sm transition ${
+                  isFirst
+                    ? "text-zinc-500 cursor-not-allowed"
+                    : "text-zinc-300 hover:text-white"
+                }`}
               >
                 ◀ Anterior
               </button>
               <button
-                // onClick={onNext}
-                className="text-sm text-zinc-300 hover:text-white transition"
+                onClick={async () => {
+                  await updateLastRead(manga.id, {
+                    chapter: chapter,
+                  });
+
+                  if (isLast) {
+                    push(`/reader/library/read/${manga.id}`);
+
+                    return;
+                  }
+
+                  const url = navigateChapter("next");
+
+                  if (url) {
+                    push(url);
+
+                    return;
+                  }
+
+                  toast.error("Erro ao buscar capitulo seguinte");
+                  push("reader/library");
+                }}
+                className={`text-sm transition text-zinc-300 hover:text-white`}
               >
-                Próximo ▶
+                {isLast ? "Ultimo Capitulo ▶" : "Próximo ▶"}
               </button>
             </div>
           </div>
