@@ -4,17 +4,11 @@ import { Chapter } from "@/type/types";
 import { load } from "cheerio";
 
 export async function fetchChaptersFromMangalivre(
-  url: string
+  url: string,
+  mangaId: string
 ): Promise<Chapter[]> {
   try {
-    // Extrair slug do mangá da URL original
-    const match = url.match(/manga\/([^/]+)/);
-    if (!match) {
-      throw new Error("URL inválida. Não foi possível extrair o slug.");
-    }
-
-    const slug = match[1];
-    const ajaxUrl = `https://mangalivre.tv/manga/${slug}/ajax/chapters/`;
+    const ajaxUrl = `${url}/manga/${mangaId}/ajax/chapters/`;
 
     const res = await fetch(ajaxUrl, {
       method: "POST",

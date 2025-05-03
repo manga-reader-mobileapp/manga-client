@@ -3,6 +3,7 @@
 import { getUniqueManga } from "@/api/library/unique/getUniqueManga";
 import { fetchChaptersFromMangalivre } from "@/api/sources/manga-livre/fetchChapters";
 import { Button } from "@/components/ui/button";
+import { replaceDotsWithHyphens } from "@/services/replaceDotsWithHyphens";
 import { Chapter, Manga } from "@/type/types";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -14,16 +15,6 @@ import {
   IoHeartOutline,
   IoHeartSharp,
 } from "react-icons/io5";
-
-function removeManga(url: string) {
-  // Verifica se a string contém "/manga"
-  if (url.includes("/manga")) {
-    // Remove "/manga" da string
-    return url.replace("/manga", "");
-  }
-  // Retorna a string original se não contiver "/manga"
-  return url;
-}
 
 function extractChapterNumber(chapterTitle: string): number {
   // Regex para encontrar números no título
@@ -47,7 +38,7 @@ export default function MangaPage() {
       ? params.id[0]
       : "";
 
-  const { back } = useRouter();
+  const { back, push } = useRouter();
 
   const [manga, setManga] = useState<Manga>({
     id: mangaId,
@@ -64,12 +55,11 @@ export default function MangaPage() {
   const [chapters, setChapters] = useState<Chapter[]>([]);
 
   const getChapters = async (url: string) => {
-    const response = await fetchChaptersFromMangalivre(removeManga(url));
+    if (!manga.url) return;
+    const response = await fetchChaptersFromMangalivre(url, manga.url);
 
     if (!response) return;
     setChapters(response);
-
-    console.log(response);
   };
 
   useEffect(() => {
@@ -81,14 +71,14 @@ export default function MangaPage() {
       if (response) {
         setManga(response);
 
-        getChapters(response.sourceUrl + response.url);
+        getChapters(response.sourceUrl);
       } else {
         back();
       }
     };
 
     getManga();
-  }, [mangaId, back]);
+  }, [mangaId, back, manga.url]);
 
   return (
     <div className="min-h-screen bg-neutral-900 text-white flex flex-col">
@@ -174,8 +164,15 @@ export default function MangaPage() {
 
             return (
               <div
-                className="flex items-center justify-between bg-neutral-700 p-3 rounded-xl"
+                className="flex items-center justify-between bg-neutral-700 p-3 rounded-xl cursor-pointer hover:bg-neutral-600"
                 key={index}
+                onClick={() => {
+                  push(
+                    `/reader/library/pages/${manga.sourceName}/${
+                      manga.url
+                    }/${replaceDotsWithHyphens(chapterNumber.toString())}`
+                  );
+                }}
               >
                 <div>
                   <span className="text-sm font-medium">{chapter.title}</span>

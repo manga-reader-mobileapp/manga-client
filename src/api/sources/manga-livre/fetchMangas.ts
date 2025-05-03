@@ -2,6 +2,10 @@
 
 import { load } from "cheerio";
 
+function cleanMangaId(mangaId: string): string {
+  return mangaId.replace(/^\/|\/$/g, "");
+}
+
 export async function fetchMangasMangaLivre(page: number, url: string) {
   try {
     const res = await fetch(`${page === 1 ? url : `${url}/page/${page}/`}`, {
@@ -38,14 +42,20 @@ export async function fetchMangasMangaLivre(page: number, url: string) {
         .trim();
 
       const rawUrl = $(element).find(".manga__thumb_item a").attr("href") || "";
-      const mangaUrl = rawUrl.replace(url, "");
+      const mangaUrl = rawUrl.replace(`${url}/manga`, "");
 
       // Extrair apenas o número do capítulo
       const chapters = chapterText.replace(/[^0-9]/g, "");
 
       const description = $(element).find(".manga-excerpt p").text().trim();
 
-      mangas.push({ title, img, chapters, url: mangaUrl, description });
+      mangas.push({
+        title,
+        img,
+        chapters,
+        url: cleanMangaId(mangaUrl),
+        description,
+      });
     });
 
     return mangas;

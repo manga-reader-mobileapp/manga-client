@@ -81,7 +81,6 @@ export default function PopoverPage({
                   const response = await favoriteManga(
                     {
                       title,
-                      author: "",
                       chapters,
                       description,
                       img,

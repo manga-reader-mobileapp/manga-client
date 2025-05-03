@@ -6,7 +6,6 @@ import { getToken } from "@/services/token/takeToken";
 export const favoriteManga = async (
   data: {
     title: string;
-    author: string;
     description: string;
     img: string;
     url: string;

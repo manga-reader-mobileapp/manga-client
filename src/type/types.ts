@@ -35,3 +35,13 @@ export type Chapter = {
   url: string;
   date: string;
 };
+
+export type Page = {
+  imageUrl: string;
+  pageNumber: number;
+};
+
+export type ObjectPages = {
+  totalPages: number;
+  images: Page[];
+};
