@@ -45,3 +45,26 @@ export type ObjectPages = {
   totalPages: number;
   images: Page[];
 };
+
+//history
+
+export type MangaInfo = {
+  id: string;
+  title: string;
+  img: string;
+};
+
+// Uma entrada individual no histórico de leitura
+export type HistoryEntry = {
+  id: string;
+  manga: MangaInfo;
+  chapter: string;
+  time: string;
+  updated_at: string;
+};
+
+// Grupo de entradas de histórico organizadas por data
+export type HistoryGroup = {
+  date: string;
+  entries: HistoryEntry[];
+};

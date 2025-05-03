@@ -29,7 +29,7 @@ export default function MangaCard({
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-200"></div>
 
       {/* Badge de capítulos */}
-      {chapters && (
+      {chapters && chapters === "0" ? null : (
         <div className="absolute top-1 left-1 bg-pink-500 px-1.5 py-0.5 rounded-full">
           <span className="text-white text-[10px] font-bold">{chapters}</span>
         </div>
