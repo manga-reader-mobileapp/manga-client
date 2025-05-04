@@ -6,6 +6,7 @@ import { updateLastRead } from "@/api/library/unique/updateLastRead";
 import { updateMangaCategory } from "@/api/library/updateCategory";
 import { favoriteSavedManga } from "@/api/sources/geral/favoriteSavedManga";
 import { unfavoriteManga } from "@/api/sources/geral/unfavoriteManga";
+import { fetchChaptersFromLerMangas } from "@/api/sources/ler-manga/fetchChapters";
 import { fetchChaptersFromMangalivre } from "@/api/sources/manga-livre/fetchChapters";
 import Popup from "@/components/popup/page";
 import ShareButton from "@/components/tools/sharingButton";
@@ -62,14 +63,32 @@ export default function MangaPage() {
 
   const getChapters = async (url: string) => {
     if (!manga.url) return;
-    const response = await fetchChaptersFromMangalivre(url, manga.url);
 
-    if (!response) return;
-    setChapters(response);
+    if (manga.sourceName === "manga-livre") {
+      const response = await fetchChaptersFromMangalivre(url, manga.url);
 
-    setFirstChapter(extractChapterNumber(response[response.length - 1].title));
+      if (!response) return;
+      setChapters(response);
 
-    setLastChapter(extractChapterNumber(response[0].title));
+      setFirstChapter(
+        extractChapterNumber(response[response.length - 1].title)
+      );
+
+      setLastChapter(extractChapterNumber(response[0].title));
+    }
+
+    if (manga.sourceName === "ler-mangas") {
+      const response = await fetchChaptersFromLerMangas(url, manga.url);
+
+      if (!response) return;
+      setChapters(response);
+
+      setFirstChapter(
+        extractChapterNumber(response[response.length - 1].title)
+      );
+
+      setLastChapter(extractChapterNumber(response[0].title));
+    }
   };
 
   useEffect(() => {
@@ -153,7 +172,11 @@ export default function MangaPage() {
           <div className="flex flex-col justify-between flex-1">
             <h2 className="text-xl font-bold">{manga.title}</h2>
             <p className="text-sm text-gray-300 line-clamp-3">
-              {manga.description}
+              {manga.sourceTitle}
+            </p>
+
+            <p className="text-sm  text-gray-300 line-clamp-3 pb-4">
+              {!!manga.description ? manga.description : "Sem descrição"}
             </p>
 
             <div className="flex gap-4 mt-2">
@@ -205,7 +228,10 @@ export default function MangaPage() {
                 <BsGlobe2
                   className="cursor-pointer"
                   onClick={() => {
-                    if (manga.sourceName === "manga-livre") {
+                    if (
+                      manga.sourceName === "manga-livre" ||
+                      manga.sourceName === "ler-mangas"
+                    ) {
                       window.open(
                         manga.sourceUrl + "/manga/" + manga.url,
                         "_blank"

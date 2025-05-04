@@ -31,8 +31,6 @@ export const decrypt = async (cvalue: string) => {
     const bytes = crypto.AES.decrypt(cvalue, secretKeyCrypt);
     const decrypted = bytes.toString(crypto.enc.Utf8);
 
-    console.log("decrypted", decrypted);
-
     if (!decrypted) {
       console.warn("Decrypt falhou: string vazia ou inválida.");
       return null;

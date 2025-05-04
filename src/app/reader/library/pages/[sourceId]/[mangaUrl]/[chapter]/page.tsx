@@ -2,6 +2,7 @@
 
 import { getInfosPages } from "@/api/library/unique/getInfosPages";
 import { updateLastRead } from "@/api/library/unique/updateLastRead";
+import { fetchPagesFromLerMangas } from "@/api/sources/ler-manga/fetchPages";
 import { fetchChaptersFromMangalivre } from "@/api/sources/manga-livre/fetchChapters";
 import { fetchPagesFromMangalivre } from "@/api/sources/manga-livre/fetchPages";
 import { extractChapterNumber } from "@/services/extractChapterNumber";
@@ -14,7 +15,6 @@ import { toast } from "sonner";
 export default function MangaChapterViewer() {
   const { back, push } = useRouter();
 
-  // Obter os parâmetros da URL
   const params = useParams();
 
   const [isLoading, setIsLoading] = useState(true);
@@ -41,10 +41,13 @@ export default function MangaChapterViewer() {
 
   const getChapters = async (url: string) => {
     if (!mangaUrl) return;
-    const response = await fetchChaptersFromMangalivre(url, mangaUrl);
 
-    if (!response) return;
-    setChapters(response);
+    if (sourceId === "ler-mangas" || sourceId === "manga-livre") {
+      const response = await fetchChaptersFromMangalivre(url, mangaUrl);
+
+      if (!response) return;
+      setChapters(response);
+    }
   };
 
   useEffect(() => {
@@ -53,9 +56,9 @@ export default function MangaChapterViewer() {
 
       setIsLoading(true);
 
-      if (sourceId === "manga-livre") {
-        const source = await getInfosPages(sourceId, mangaUrl);
+      const source = await getInfosPages(sourceId, mangaUrl);
 
+      if (sourceId === "manga-livre") {
         if (!source) {
           back();
 
@@ -65,6 +68,25 @@ export default function MangaChapterViewer() {
         setManga(source);
 
         const response = await fetchPagesFromMangalivre(
+          `${source.url}/manga/${mangaUrl}/capitulo-${replaceDotsWithHyphens(
+            chapter
+          )}/`
+        );
+
+        if (response) {
+          setPages(response);
+
+          setIsLoading(false);
+
+          getChapters(source.url);
+
+          return;
+        }
+        back();
+      }
+
+      if (sourceId === "ler-mangas") {
+        const response = await fetchPagesFromLerMangas(
           `${source.url}/manga/${mangaUrl}/capitulo-${replaceDotsWithHyphens(
             chapter
           )}/`
@@ -94,11 +116,10 @@ export default function MangaChapterViewer() {
       return {
         ...ch,
         rawNumber: raw,
-        number, // para ordenação
+        number,
       };
     });
 
-    // Ordena por número (float), garantindo ordem crescente
     const sorted = chapterNumbers.sort((a, b) => a.number - b.number);
 
     const index = sorted.findIndex((ch) => ch.number === currentNumber);
@@ -109,18 +130,15 @@ export default function MangaChapterViewer() {
 
     const nextChapter = sorted[nextIndex];
 
-    // Se for da fonte "manga-livre", monta a URL customizada
-    if (sourceId === "manga-livre") {
-      return `/reader/library/pages/manga-livre/${mangaUrl}/${replaceDotsWithHyphens(
+    if (sourceId === "manga-livre" || sourceId === "ler-mangas") {
+      return `/reader/library/pages/${sourceId}/${mangaUrl}/${replaceDotsWithHyphens(
         nextChapter.rawNumber
       )}`;
     }
 
-    // Senão, usa a URL padrão do capítulo
     return nextChapter.url;
   }
 
-  // Nova função para verificar se é o primeiro ou último capítulo
   function isFirstOrLastChapter(): { isFirst: boolean; isLast: boolean } {
     if (!chapters.length) return { isFirst: false, isLast: false };
 
@@ -131,10 +149,8 @@ export default function MangaChapterViewer() {
       return number;
     });
 
-    // Ordena por número (float), garantindo ordem crescente
     const sortedNumbers = [...chapterNumbers].sort((a, b) => a - b);
 
-    // Verifica se é o primeiro (menor número) ou último (maior número)
     const isFirst = currentNumber === sortedNumbers[0];
     const isLast = currentNumber === sortedNumbers[sortedNumbers.length - 1];
 
@@ -157,11 +173,18 @@ export default function MangaChapterViewer() {
                 className="flex items-center justify-center bg-neutral-700 p-3 rounded-xl "
                 key={index}
               >
-                <img
-                  src={page.imageUrl}
-                  alt="img"
-                  className="w-full h-full object-cover"
-                />
+                {sourceId === "ler-mangas" ? (
+                  <img
+                    src={`/api/proxy?url=${page.imageUrl}`}
+                    alt="Página do mangá"
+                  />
+                ) : (
+                  <img
+                    src={page.imageUrl}
+                    alt="img"
+                    className="w-full h-full object-cover"
+                  />
+                )}
               </div>
             ))}
           </div>
@@ -173,7 +196,14 @@ export default function MangaChapterViewer() {
           <div className="flex items-center justify-between">
             {/* Voltar */}
             <button
-              onClick={() => push(`/reader/library/read/${manga.id}`)}
+              onClick={() => {
+                if (!manga.id) {
+                  push(`/reader/library`);
+                  return;
+                }
+
+                push(`/reader/library/read/${manga.id}`);
+              }}
               className="text-sm text-zinc-300 hover:text-white transition"
             >
               ⬅ Voltar
