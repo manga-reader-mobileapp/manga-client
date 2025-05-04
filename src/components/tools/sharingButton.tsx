@@ -30,7 +30,7 @@ const ShareButton = () => {
   };
 
   return (
-    <button onClick={handleShare} className="text-white text-xl">
+    <button onClick={handleShare} className="text-white text-xl cursor-pointer">
       <FiShare2 />
     </button>
   );

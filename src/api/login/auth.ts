@@ -4,8 +4,6 @@ import { crypt } from "@/services/crypt";
 import { cookies } from "next/headers";
 
 export async function authLogin(email: string, password: string) {
-  "use server";
-
   try {
     const response = await fetch(`${API_URL}/auth/login`, {
       method: "POST",
@@ -13,29 +11,29 @@ export async function authLogin(email: string, password: string) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        email: email?.toLocaleLowerCase(),
+        email: email?.toLowerCase(),
         password: password,
       }),
     });
 
     const data = await response.json();
 
-    if (data.user.instanceDisable) {
-      return {
-        instanceDisable: true,
-      };
-    }
+    const cookieStore = await cookies();
 
-    cookies().set("access_token", crypt(data.acess_token), {
+    const crypted = await crypt(data.acess_token);
+
+    cookieStore.set("access_token", crypted, {
       path: "/",
-      maxAge: 60 * 60 * 24 * 30, // 30 dias
+      maxAge: 60 * 60 * 24 * 30,
     });
 
     return data;
   } catch (err: any) {
-    const msm = err.response?.data.message;
+    const msm = err?.message ?? "Erro desconhecido";
 
-    if (msm && msm != "") {
+    console.log(msm);
+
+    if (msm && msm !== "") {
       return msm;
     }
 
