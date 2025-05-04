@@ -6,8 +6,11 @@ function cleanMangaId(mangaId: string): string {
   return mangaId.replace(/^\/|\/$/g, "");
 }
 
-export async function searchMangasLerMangas(query: string, page: number = 1) {
-  const baseUrl = "https://lermangas.me";
+export async function searchMangasLerMangas(
+  baseUrl: string,
+  query: string,
+  page: number = 1
+) {
   const searchUrl =
     page === 1
       ? `${baseUrl}/?s=${encodeURIComponent(query)}&post_type=wp-manga`
@@ -50,7 +53,7 @@ export async function searchMangasLerMangas(query: string, page: number = 1) {
       const chapters = chapterText.replace(/[^0-9]/g, "") || "0";
 
       const rawUrl = $(element).find(".post-title h3 a").attr("href") || "";
-      const mangaUrl = rawUrl.replace("https://lermangas.me", "");
+      const mangaUrl = rawUrl.replace("https://lermangas.me/manga", "");
 
       mangas.push({
         title,

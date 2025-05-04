@@ -6,8 +6,7 @@ function cleanMangaId(mangaId: string): string {
   return mangaId.replace(/^\/|\/$/g, "");
 }
 
-export async function fetchMangasLerMangas(page: number) {
-  const baseUrl = "https://lermangas.me/manga";
+export async function fetchMangasLerMangas(baseUrl: string, page: number) {
   const pageUrl = page === 1 ? baseUrl : `${baseUrl}/page/${page}/`;
 
   try {

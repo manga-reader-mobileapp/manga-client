@@ -6,8 +6,12 @@ function cleanMangaId(mangaId: string): string {
   return mangaId.replace(/^\/|\/$/g, "");
 }
 
-export async function searchMangasMangaLivre(query: string, page: number = 1) {
-  const searchUrl = `https://mangalivre.tv${
+export async function searchMangasMangaLivre(
+  url: string,
+  query: string,
+  page: number = 1
+) {
+  const searchUrl = `${url}${
     page === 1 ? "" : `/page/${page}`
   }/?s=${encodeURIComponent(query)}&post_type=wp-manga`;
 

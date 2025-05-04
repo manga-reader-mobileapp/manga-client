@@ -101,7 +101,10 @@ export default function MangaLivrePage() {
 
         if (activeSource === "ler-mangas") {
           if (lerMangasSource) {
-            const lerMangasResults = await fetchMangasLerMangas(pageNum);
+            const lerMangasResults = await fetchMangasLerMangas(
+              lerMangasSource.url,
+              pageNum
+            );
             if (lerMangasResults && Array.isArray(lerMangasResults)) {
               const taggedResults = lerMangasResults.map((manga) => ({
                 ...manga,
@@ -135,14 +138,18 @@ export default function MangaLivrePage() {
     async (pageNum: number, searchQuery: string) => {
       if (isLoadingRef.current || !searchQuery || !hasMoreData) return;
 
+      const { mangaLivre: mangaLivreSource, lerMangas: lerMangasSource } =
+        sourcesDataRef.current;
+
       setLoading(true);
       isLoadingRef.current = true;
 
       try {
         let allSearchResults: Manga[] = [];
 
-        if (activeSource === "manga-livre") {
+        if (activeSource === "manga-livre" && mangaLivreSource) {
           const mangaLivreResults = await searchMangasMangaLivre(
+            mangaLivreSource.url,
             searchQuery,
             pageNum
           );
@@ -155,8 +162,9 @@ export default function MangaLivrePage() {
           }
         }
 
-        if (activeSource === "ler-mangas") {
+        if (activeSource === "ler-mangas" && lerMangasSource) {
           const lerMangasResults = await searchMangasLerMangas(
+            lerMangasSource.url,
             searchQuery,
             pageNum
           );
