@@ -18,6 +18,12 @@ export async function authLogin(email: string, password: string) {
 
     const data = await response.json();
 
+    if (!data.acess_token) {
+      return {
+        message: data.message,
+      };
+    }
+
     const cookieStore = await cookies();
 
     const crypted = await crypt(data.acess_token);

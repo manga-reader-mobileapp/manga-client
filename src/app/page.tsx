@@ -7,10 +7,16 @@ import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { createAccount } from "@/api/login/createAccount";
 
 export default function FormsLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  const [isCreateAccount, setIsCreateAccount] = useState(false);
+  const [emailCreate, setEmailCreate] = useState("");
+  const [nameCreate, setNameCreate] = useState("");
+  const [passwordCreate, setPasswordCreate] = useState("");
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -38,25 +44,15 @@ export default function FormsLogin() {
 
     const response = await authLogin(email, password);
 
-    if (!!response?.instanceDisable) {
-      toast.error("Sua conta esta desativada, estamos te redirecionando.");
-
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-
-      setIsLoading(false);
-
-      return;
-    }
-
     if (!response.acess_token) {
       setIsLoading(false);
 
-      if (response === "") {
+      if (response.message === "") {
         toast.error("Verifique suas credenciais.");
 
         return;
       }
-      toast.error(response);
+      toast.error(response.message);
 
       return;
     }
@@ -73,47 +69,160 @@ export default function FormsLogin() {
     push("/reader/library");
   };
 
+  const handleCreateAccount = async (e: any) => {
+    e.preventDefault();
+
+    if (emailCreate.length < 5) {
+      toast.error("Preencha seu email");
+      return;
+    }
+
+    if (passwordCreate.length < 4) {
+      toast.error("Preencha sua senha");
+      return;
+    }
+
+    setIsLoading(true);
+
+    const response = await createAccount(
+      emailCreate,
+      passwordCreate,
+      nameCreate
+    );
+
+    setIsLoading(false);
+    if (!response) {
+      toast.error("Erro ao criar conta");
+      return;
+    }
+
+    setIsCreateAccount(false);
+    setEmailCreate("");
+    setPasswordCreate("");
+    setNameCreate("");
+
+    toast.success(
+      "Conta criada com sucesso, aguarde a aprovação de um moderador."
+    );
+  };
+
   return (
     <div className="bg-neutral-900 h-dvh w-full flex flex-col items-center justify-center gap-5">
-      <form
-        className="flex flex-col items-center max-w-96 w-full px-4 gap-5"
-        onSubmit={login}
-      >
-        <h1 className="text-white text-left font-bold text-4xl w-full">
-          Login
-        </h1>
-        <p className="text-white text-left w-full">
-          Bem vindo de volta, acesse ou crie sua conta.
-        </p>
-        <div className="grid w-full max-w-sm items-center gap-1.5">
-          <p className="text-white">Email</p>
-          <Input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="text-white"
-          />
-        </div>
-        <div className="grid w-full max-w-sm items-center gap-1.5">
-          <p className="text-white">Senha</p>
-          <Input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="text-white"
-          />
-        </div>
-
-        <Button
-          variant="secondary"
-          type="submit"
-          className="w-full"
-          size="lg"
-          disabled={isLoading}
+      {!isCreateAccount ? (
+        <form
+          className="flex flex-col items-center max-w-96 w-full px-4 gap-5"
+          onSubmit={login}
         >
-          Entrar
-        </Button>
-      </form>
+          <h1 className="text-white text-left font-bold text-4xl w-full">
+            Login
+          </h1>
+          <p className="text-white text-left w-full">
+            Bem vindo de volta, acesse ou crie sua conta.
+          </p>
+          <div className="grid w-full max-w-sm items-center gap-1.5">
+            <p className="text-white">Email</p>
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="text-white"
+            />
+          </div>
+          <div className="grid w-full max-w-sm items-center gap-1.5">
+            <p className="text-white">Senha</p>
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="text-white"
+            />
+          </div>
+
+          <Button
+            variant="secondary"
+            type="submit"
+            className="w-full"
+            size="lg"
+            disabled={isLoading}
+          >
+            Entrar
+          </Button>
+
+          <div
+            className="w-full flex justify-end pr-2 text-blue-500 cursor-pointer"
+            onClick={() => {
+              setIsCreateAccount(true);
+              setEmail("");
+              setPassword("");
+            }}
+          >
+            Não tem conta?
+          </div>
+        </form>
+      ) : (
+        <form
+          className="flex flex-col items-center max-w-96 w-full px-4 gap-5"
+          onSubmit={handleCreateAccount}
+        >
+          <h1 className="text-white text-left font-bold text-4xl w-full">
+            Registro
+          </h1>
+          <p className="text-white text-left w-full">
+            Crie sua conta para acessar o app.
+          </p>
+          <div className="grid w-full max-w-sm items-center gap-1.5">
+            <p className="text-white">Email</p>
+            <Input
+              type="email"
+              className="text-white"
+              value={emailCreate}
+              onChange={(e) => setEmailCreate(e.target.value)}
+            />
+          </div>
+
+          <div className="grid w-full max-w-sm items-center gap-1.5">
+            <p className="text-white">Nome</p>
+            <Input
+              type="text"
+              className="text-white"
+              value={nameCreate}
+              onChange={(e) => setNameCreate(e.target.value)}
+            />
+          </div>
+          <div className="grid w-full max-w-sm items-center gap-1.5">
+            <p className="text-white">Senha</p>
+            <Input
+              type="password"
+              className="text-white"
+              value={passwordCreate}
+              onChange={(e) => setPasswordCreate(e.target.value)}
+            />
+          </div>
+
+          <Button
+            variant="secondary"
+            type="submit"
+            className="w-full"
+            size="lg"
+            disabled={isLoading}
+          >
+            Criar conta
+          </Button>
+
+          <div
+            className="w-full flex justify-end pr-2 text-blue-500 cursor-pointer"
+            onClick={() => {
+              setIsCreateAccount(false);
+              setEmailCreate("");
+              setNameCreate("");
+
+              setPasswordCreate("");
+            }}
+          >
+            Já tem conta?
+          </div>
+        </form>
+      )}
 
       {/* <div className="w-full flex justify-end pr-2">
         <Popover
