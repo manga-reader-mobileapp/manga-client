@@ -197,6 +197,13 @@ export default function Categories() {
                                   return;
                                 }
 
+                                if (
+                                  localStorage.getItem("selectedCategory") ===
+                                  category.id
+                                ) {
+                                  localStorage.removeItem("selectedCategory");
+                                }
+
                                 setCategories((prev) =>
                                   prev.filter((cat) => cat.id !== category.id)
                                 );

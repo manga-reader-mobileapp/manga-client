@@ -23,7 +23,12 @@ export default function LibraryPage() {
         setCategories(response);
 
         if (response.length > 0) {
-          setSelectedCategory(response[0].id);
+          const selectedCategory = localStorage.getItem("selectedCategory");
+          if (selectedCategory) {
+            setSelectedCategory(selectedCategory);
+          } else {
+            setSelectedCategory(response[0].id);
+          }
         }
       }
     };
@@ -66,7 +71,11 @@ export default function LibraryPage() {
             return (
               <button
                 key={category.id}
-                onClick={() => setSelectedCategory(category.id)}
+                onClick={() => {
+                  setSelectedCategory(category.id);
+
+                  localStorage.setItem("selectedCategory", category.id);
+                }}
                 className={`relative px-4 py-2 text-sm transition-all flex flex-col items-center cursor-pointer ${
                   isSelected
                     ? "text-purple-500 font-bold"
