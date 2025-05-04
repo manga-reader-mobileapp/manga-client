@@ -28,6 +28,7 @@ export type Manga = {
   url: string;
   isFavorite?: boolean;
   lastChapter?: string;
+  categoryId?: string;
 };
 
 export type Chapter = {

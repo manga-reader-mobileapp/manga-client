@@ -24,8 +24,6 @@ export default function FormsLogin() {
   const login = async (e: any) => {
     e.preventDefault();
 
-    console.log("login");
-
     if (email.length < 5) {
       toast.error("Preencha seu email");
       return;

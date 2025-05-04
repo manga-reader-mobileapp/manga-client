@@ -1,23 +1,25 @@
 "use client";
 
+import { getListCategory } from "@/api/category/getAll";
 import { getUniqueManga } from "@/api/library/unique/getUniqueManga";
+import { updateLastRead } from "@/api/library/unique/updateLastRead";
+import { updateMangaCategory } from "@/api/library/updateCategory";
 import { favoriteSavedManga } from "@/api/sources/geral/favoriteSavedManga";
 import { unfavoriteManga } from "@/api/sources/geral/unfavoriteManga";
 import { fetchChaptersFromMangalivre } from "@/api/sources/manga-livre/fetchChapters";
+import Popup from "@/components/popup/page";
+import ShareButton from "@/components/tools/sharingButton";
 import { Button } from "@/components/ui/button";
 import { extractChapterNumber } from "@/services/extractChapterNumber";
 import { replaceDotsWithHyphens } from "@/services/replaceDotsWithHyphens";
-import { Chapter, Manga } from "@/type/types";
+import { Category, Chapter, Manga } from "@/type/types";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BsGlobe2 } from "react-icons/bs";
-import { FiShare2 } from "react-icons/fi";
 import { IoIosArrowDropleftCircle } from "react-icons/io";
-import {
-  IoCheckmarkSharp,
-  IoHeartOutline,
-  IoHeartSharp,
-} from "react-icons/io5";
+import { IoEyeSharp, IoHeartOutline, IoHeartSharp } from "react-icons/io5";
+import { MdLabelOutline } from "react-icons/md";
+
 import { toast } from "sonner";
 
 export default function MangaPage() {
@@ -44,6 +46,9 @@ export default function MangaPage() {
   });
 
   const [chapters, setChapters] = useState<Chapter[]>([]);
+
+  const [isOpen, setIsOpen] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   const [lastChapter, setLastChapter] = useState<{
     number: number;
@@ -85,19 +90,54 @@ export default function MangaPage() {
     getManga();
   }, [mangaId, back, manga.url]);
 
+  useEffect(() => {
+    const fetchCategories = async () => {
+      if (!isOpen) return;
+
+      if (!!categories[0]) return;
+
+      const response = await getListCategory();
+
+      if (response) {
+        setCategories(response);
+      }
+    };
+
+    fetchCategories();
+  }, [isOpen]);
+
+  const updateCategory = async (categoryId: string) => {
+    const response = await updateMangaCategory({
+      mangaId: [mangaId],
+      categoryId,
+    });
+
+    if (!response) {
+      toast.error("Erro ao atualizar categoria");
+      return;
+    }
+
+    return response;
+  };
+
   return (
     <div className="min-h-screen bg-neutral-900 text-white flex flex-col w-full">
       {/* Fixed Top Section */}
       <div className="p-4 space-y-4">
         {/* Top Bar */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between pb-4">
           <button
             className="text-white text-2xl cursor-pointer"
             onClick={() => push(`/reader/library`)}
           >
             <IoIosArrowDropleftCircle />
           </button>
-          <div className="w-6" /> {/* Espaço para equilibrar layout */}
+
+          <MdLabelOutline
+            className="cursor-pointer"
+            size={28}
+            onClick={() => setIsOpen(true)}
+          />
         </div>
 
         {/* Manga Info */}
@@ -174,9 +214,7 @@ export default function MangaPage() {
                   }}
                 />
               </button>
-              <button className="text-white text-xl">
-                <FiShare2 />
-              </button>
+              <ShareButton />
             </div>
           </div>
         </div>
@@ -267,7 +305,9 @@ export default function MangaPage() {
 
             return (
               <div
-                className="flex items-center justify-between bg-neutral-700 p-3 rounded-xl cursor-pointer hover:bg-neutral-600"
+                className={`flex items-center justify-between p-3 rounded-xl cursor-pointer hover:bg-neutral-600
+                ${readed ? "bg-neutral-800 opacity-50" : "bg-neutral-700"}
+              `}
                 key={index}
                 onClick={() => {
                   push(
@@ -282,16 +322,124 @@ export default function MangaPage() {
                   <p className="text-xs text-gray-400">{chapter.date}</p>
                 </div>
 
-                {readed && (
-                  <div className="flex items-center justify-center">
-                    <IoCheckmarkSharp className="text-white text-2xl" />
-                  </div>
-                )}
+                <div
+                  className="flex items-center justify-center"
+                  onClick={(e) => {
+                    e.stopPropagation();
+
+                    toast.custom(
+                      (t) => (
+                        <div className="p-4 bg-[var(--normal-bg)] border border-[var(--normal-border)] text-[var(--normal-text)] rounded-[var(--border-radius)] shadow-md w-[var(--width)] flex items-center gap-3">
+                          <div className="flex flex-col gap-2">
+                            <p className="text-xs text-default-500">
+                              Tem certeza? Esse será o último capitulo lido.
+                            </p>
+                          </div>
+
+                          <div className="flex gap-1">
+                            <Button
+                              variant="destructive"
+                              onClick={() => toast.dismiss(t)}
+                              className="cursor-pointer"
+                            >
+                              Cancelar
+                            </Button>
+                            <Button
+                              variant="default"
+                              className="cursor-pointer"
+                              onClick={async () => {
+                                const response = await updateLastRead(mangaId, {
+                                  chapter: chapterNumber.raw,
+                                  forceUpdate: true,
+                                });
+
+                                if (!response) {
+                                  return;
+                                }
+
+                                toast.dismiss(t);
+
+                                setManga((prev) => {
+                                  return {
+                                    ...prev,
+                                    lastChapter: chapterNumber.raw,
+                                  };
+                                });
+                              }}
+                            >
+                              Atualizar
+                            </Button>
+                          </div>
+                        </div>
+                      ),
+                      {
+                        position: "bottom-left",
+                      }
+                    );
+                  }}
+                >
+                  <IoEyeSharp className="text-white text-2xl" />
+                </div>
               </div>
             );
           })}
         </div>
       </div>
+
+      <Popup isOpen={isOpen} onClose={() => setIsOpen(false)}>
+        <div className=" w-[300px]">
+          <div className="flex items-center justify-between pb-4">
+            <span className="text-neutral-800 font-semibold">Categorias</span>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            {!!categories[0] ? (
+              categories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={async () => {
+                    if (manga.categoryId === category.id) return;
+
+                    setIsOpen(false);
+
+                    const response = await updateCategory(category.id);
+
+                    if (response) {
+                      setManga((prev) => {
+                        return {
+                          ...prev,
+                          categoryId: category.id,
+                        };
+                      });
+                    }
+                  }}
+                  className={`flex items-center gap-2 p-2 rounded-lg ${
+                    manga.categoryId === category.id
+                      ? "bg-violet-500"
+                      : "hover:bg-neutral-400 cursor-pointer"
+                  }`}
+                >
+                  <MdLabelOutline size={20} />
+
+                  <span
+                    className={`${
+                      manga.categoryId === category.id
+                        ? "text-white"
+                        : "text-neutral-800"
+                    }`}
+                  >
+                    {category.name}
+                  </span>
+                </button>
+              ))
+            ) : (
+              <div className="flex justify-center items-center">
+                <p className="text-neutral-800">Carregando categorias</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </Popup>
     </div>
   );
 }

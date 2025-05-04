@@ -151,7 +151,7 @@ export default function MangaChapterViewer() {
         </div>
       ) : (
         pages && (
-          <div className="flex flex-col gap-4  sm:px-2 md:px-16 lg:px-72 xl:px-96 py-4 bg-neutral-900 pb-6">
+          <div className="flex flex-col gap-4 px-4 sm:px-4 md:px-16 lg:px-72 xl:px-96 py-4 bg-neutral-900 pb-6">
             {pages.images.map((page, index) => (
               <div
                 className="flex items-center justify-center bg-neutral-700 p-3 rounded-xl "
@@ -180,9 +180,7 @@ export default function MangaChapterViewer() {
             </button>
 
             {/* Capítulo centralizado */}
-            <div className="absolute left-1/2 transform -translate-x-1/2 font-semibold text-base">
-              Capítulo {chapter}
-            </div>
+            <div className="font-semibold text-base">Capítulo {chapter}</div>
 
             {/* Anterior / Próximo */}
             <div className="flex space-x-4">

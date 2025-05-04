@@ -40,12 +40,6 @@ export async function fetchPagesFromMangalivre(chapterUrl: string) {
       });
     });
 
-    console.log({
-      chapterId: currentChapterId,
-      totalPages: chapterImages.length,
-      images: chapterImages,
-    });
-
     return {
       chapterId: currentChapterId,
       totalPages: chapterImages.length,
