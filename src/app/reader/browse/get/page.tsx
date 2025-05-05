@@ -353,7 +353,7 @@ export default function MangaLivrePage() {
           >
             Manga Livre
           </button>
-          <button
+          {/* <button
             onClick={() => changeSource("ler-mangas")}
             className={`px-3 py-1 rounded-md text-sm ${
               activeSource === "ler-mangas"
@@ -363,7 +363,7 @@ export default function MangaLivrePage() {
             disabled={loading}
           >
             Ler Mangas
-          </button>
+          </button> */}
         </div>
       </div>
 

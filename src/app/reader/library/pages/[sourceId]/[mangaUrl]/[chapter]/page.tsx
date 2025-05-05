@@ -9,7 +9,7 @@ import { extractChapterNumber } from "@/services/extractChapterNumber";
 import { replaceDotsWithHyphens } from "@/services/replaceDotsWithHyphens";
 import { Chapter, ObjectPages } from "@/type/types";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export default function MangaChapterViewer() {
@@ -28,6 +28,20 @@ export default function MangaChapterViewer() {
     images: [],
   });
   const [chapters, setChapters] = useState<Chapter[]>([]);
+  // Estado para rastrear a página atual que o usuário está visualizando
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Refs para cada página
+  const pageRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Ref para o elemento de conteúdo principal para detectar scroll
+  const contentRef = useRef<HTMLDivElement | null>(null);
+
+  // Função para forçar verificação de páginas visíveis
+  const checkVisiblePagesRef = useRef<() => void>(() => {});
+
+  // Flag para indicar se o rastreamento foi inicializado
+  const [trackingInitialized, setTrackingInitialized] = useState(false);
 
   const [manga, setManga] = useState<{
     chapters: number;
@@ -38,6 +52,99 @@ export default function MangaChapterViewer() {
     title: "",
     id: "",
   });
+  // Substituição da função redirectPage atual
+
+  const redirectPage = async () => {
+    const getReadingProgress = localStorage.getItem("manga-reading-progress");
+
+    if (getReadingProgress) {
+      try {
+        const progress = JSON.parse(getReadingProgress);
+
+        if (Array.isArray(progress)) {
+          const thisManga = progress.find(
+            (p) =>
+              p.sourceId === sourceId &&
+              p.mangaUrl === mangaUrl &&
+              p.chapter === chapter
+          );
+
+          if (thisManga && thisManga.pageNumber) {
+            // Usar o número da página salvo em vez de um valor fixo
+            setCurrentPage(thisManga.pageNumber);
+
+            // Dar tempo para que as imagens carreguem
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+
+            // Rolar para a página salva
+            const targetElement = document.getElementById(
+              `manga-page-${thisManga.pageNumber}`
+            );
+            if (targetElement) {
+              targetElement.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao processar progresso de leitura:", error);
+      }
+    }
+  };
+
+  const onPageChange = (oldPage: number, newPage: number) => {
+    saveReadingProgress(newPage);
+  };
+
+  const saveReadingProgress = (pageNumber: number) => {
+    const readingProgressKey = "manga-reading-progress";
+    let progress = [];
+
+    const existingProgress = localStorage.getItem(readingProgressKey);
+    if (existingProgress) {
+      try {
+        progress = JSON.parse(existingProgress);
+      } catch (error) {
+        console.error("Erro ao recuperar progresso de leitura:", error);
+      }
+    }
+
+    if (!Array.isArray(progress)) {
+      progress = [];
+    }
+
+    const mangaIndex = progress.findIndex(
+      (p) => p.sourceId === sourceId && p.mangaUrl === mangaUrl
+    );
+
+    if (mangaIndex >= 0) {
+      // Atualiza obra existente
+      progress[mangaIndex] = {
+        ...progress[mangaIndex],
+        chapter,
+        pageNumber,
+      };
+    } else {
+      progress.push({
+        sourceId,
+        mangaUrl,
+        chapter,
+        pageNumber,
+      });
+
+      const uniqueWorks = new Map();
+      for (let i = 0; i < progress.length; i++) {
+        const key = `${progress[i].sourceId}-${progress[i].mangaUrl}`;
+        uniqueWorks.set(key, progress[i]);
+      }
+
+      progress = Array.from(uniqueWorks.values()).slice(-10);
+    }
+
+    localStorage.setItem(readingProgressKey, JSON.stringify(progress));
+  };
 
   const getChapters = async (url: string) => {
     if (!mangaUrl) return;
@@ -78,6 +185,8 @@ export default function MangaChapterViewer() {
 
           setIsLoading(false);
 
+          redirectPage();
+
           getChapters(source.url);
 
           return;
@@ -106,7 +215,152 @@ export default function MangaChapterViewer() {
     };
 
     fetchPages();
-  }, [sourceId, mangaUrl, chapter]);
+  }, [sourceId, mangaUrl, chapter, back]);
+
+  // Configurar o rastreamento de páginas visíveis
+  useEffect(() => {
+    if (isLoading || !pages.images.length) return;
+
+    pageRefs.current = pageRefs.current.slice(0, pages.images.length);
+
+    interface PageVisibilityInfo {
+      index: number;
+      visibility: number;
+      visibleArea?: number;
+      score?: number;
+      distanceFromCenter?: number;
+    }
+
+    const checkVisiblePages = () => {
+      const pageVisibility: PageVisibilityInfo[] = pageRefs.current.map(
+        (ref, index) => {
+          if (!ref) return { index, visibility: 0 };
+
+          const rect = ref.getBoundingClientRect();
+          const windowHeight = window.innerHeight;
+
+          const visibleTop = Math.max(0, rect.top);
+          const visibleBottom = Math.min(windowHeight, rect.bottom);
+          const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+
+          const visibility = visibleHeight / rect.height;
+          const visibleArea = visibleHeight * rect.width;
+
+          const centerY = windowHeight / 2;
+          const distanceFromCenter = Math.abs(
+            rect.top + rect.height / 2 - centerY
+          );
+          const centerFactor = 1 - distanceFromCenter / (windowHeight / 2);
+
+          const score = visibility * 0.7 + Math.max(0, centerFactor) * 0.3;
+
+          return {
+            index,
+            visibility,
+            visibleArea,
+            score,
+            distanceFromCenter,
+          };
+        }
+      );
+
+      const bestScore = pageVisibility.reduce<PageVisibilityInfo>(
+        (prev, current) =>
+          (current.score || 0) > (prev.score || 0) ? current : prev,
+        { index: 0, visibility: 0, score: 0 }
+      );
+
+      const largestVisibleArea = pageVisibility.reduce<PageVisibilityInfo>(
+        (prev, current) =>
+          (current.visibleArea || 0) > (prev.visibleArea || 0) ? current : prev,
+        { index: 0, visibility: 0, visibleArea: 0 }
+      );
+
+      const centeredPages = pageVisibility
+        .filter((p) => p.visibility > 0.15)
+        .sort((a, b) => {
+          const distA = a.distanceFromCenter || Infinity;
+          const distB = b.distanceFromCenter || Infinity;
+          return distA - distB;
+        });
+
+      let winningPage;
+      if (centeredPages.length > 0) {
+        winningPage = centeredPages[0];
+      } else if ((bestScore.score || 0) > 0.1) {
+        winningPage = bestScore;
+      } else if ((largestVisibleArea.visibleArea || 0) > 0) {
+        winningPage = largestVisibleArea;
+      }
+
+      if (winningPage && winningPage.index !== undefined) {
+        const newPage = winningPage.index + 1;
+        if (newPage !== currentPage) {
+          const oldPage = currentPage;
+          setCurrentPage(newPage);
+          onPageChange(oldPage, newPage);
+        }
+      }
+    };
+
+    checkVisiblePagesRef.current = checkVisiblePages;
+
+    const imageLoadHandler = () => {
+      setTimeout(checkVisiblePages, 100);
+    };
+
+    window.addEventListener("scroll", checkVisiblePages, { passive: true });
+    window.addEventListener("resize", checkVisiblePages, { passive: true });
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          checkVisiblePages();
+        }
+      },
+      {
+        root: null,
+        rootMargin: "0px",
+        threshold: [0, 0.25, 0.5, 0.75, 1],
+      }
+    );
+
+    // Observar todas as páginas
+    pageRefs.current.forEach((ref) => {
+      if (ref) {
+        observer.observe(ref);
+
+        const img = ref.querySelector("img");
+        if (img) {
+          if (img.complete) {
+            imageLoadHandler();
+          } else {
+            img.addEventListener("load", imageLoadHandler, { once: true });
+          }
+        }
+      }
+    });
+
+    setTimeout(checkVisiblePages, 500);
+
+    setTrackingInitialized(true);
+
+    return () => {
+      window.removeEventListener("scroll", checkVisiblePages);
+      window.removeEventListener("resize", checkVisiblePages);
+
+      pageRefs.current.forEach((ref) => {
+        if (ref) {
+          observer.unobserve(ref);
+
+          const img = ref.querySelector("img");
+          if (img) {
+            img.removeEventListener("load", imageLoadHandler);
+          }
+        }
+      });
+    };
+  }, [isLoading, pages.images, currentPage]);
 
   function navigateChapter(direction: "next" | "prev"): string | null {
     const { number: currentNumber } = extractChapterNumber(chapter);
@@ -159,6 +413,14 @@ export default function MangaChapterViewer() {
 
   const { isFirst, isLast } = isFirstOrLastChapter();
 
+  const CheckVisibleButton = () => (
+    <button
+      className="hidden"
+      data-check-visible="true"
+      onClick={() => checkVisiblePagesRef.current()}
+    />
+  );
+
   return (
     <div className="min-h-screen w-full bg-neutral-900 text-white flex flex-col">
       {isLoading ? (
@@ -167,22 +429,62 @@ export default function MangaChapterViewer() {
         </div>
       ) : (
         pages && (
-          <div className="flex flex-col gap-4 px-4 sm:px-4 md:px-16 lg:px-72 xl:px-96 py-4 bg-neutral-900 pb-6">
+          <div
+            className="flex flex-col gap-4 px-4 sm:px-4 md:px-16 lg:px-72 xl:px-96 py-4 bg-neutral-900 pb-20"
+            ref={contentRef}
+          >
+            <CheckVisibleButton />
             {pages.images.map((page, index) => (
               <div
-                className="flex items-center justify-center bg-neutral-700 p-3 rounded-xl "
+                className="flex items-center justify-center bg-neutral-700 p-3 rounded-xl relative"
                 key={index}
+                ref={(el) => {
+                  pageRefs.current[index] = el;
+                }}
+                id={`manga-page-${index + 1}`}
+                data-page-number={index + 1}
               >
+                {/* Número da página no canto */}
+                <div className="absolute top-5 left-5 bg-black bg-opacity-70 text-white px-2 py-1 rounded-md text-sm">
+                  {index + 1}/{pages.images.length}
+                </div>
+
                 {sourceId === "ler-mangas" ? (
                   <img
+                    loading="lazy"
                     src={`/api/proxy?url=${page.imageUrl}`}
-                    alt="Página do mangá"
+                    alt={`Página ${index + 1} do mangá`}
+                    onLoad={() => {
+                      if (index === 0) {
+                        const checkVisibleButton =
+                          pageRefs.current[0]?.parentElement?.querySelector(
+                            "[data-check-visible=true]"
+                          ) as HTMLButtonElement | null;
+
+                        if (checkVisibleButton) {
+                          checkVisibleButton.click();
+                        }
+                      }
+                    }}
                   />
                 ) : (
                   <img
+                    loading="lazy"
                     src={page.imageUrl}
-                    alt="img"
+                    alt={`Página ${index + 1} do mangá`}
                     className="w-full h-full object-cover"
+                    onLoad={() => {
+                      if (index === 0) {
+                        const checkVisibleButton =
+                          pageRefs.current[0]?.parentElement?.querySelector(
+                            "[data-check-visible=true]"
+                          ) as HTMLButtonElement | null;
+
+                        if (checkVisibleButton) {
+                          checkVisibleButton.click();
+                        }
+                      }
+                    }}
                   />
                 )}
               </div>
@@ -209,8 +511,13 @@ export default function MangaChapterViewer() {
               ⬅ Voltar
             </button>
 
-            {/* Capítulo centralizado */}
-            <div className="font-semibold text-base">Capítulo {chapter}</div>
+            {/* Capítulo e Página */}
+            <div className="flex flex-col items-center">
+              <div className="font-semibold text-base">Capítulo {chapter}</div>
+              <div className="text-xs text-zinc-300">
+                Página {currentPage} de {pages.images.length}
+              </div>
+            </div>
 
             {/* Anterior / Próximo */}
             <div className="flex space-x-4">
