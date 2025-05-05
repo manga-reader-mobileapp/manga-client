@@ -161,6 +161,8 @@ export default function MangaChapterViewer() {
     const fetchPages = async () => {
       if (!sourceId || !mangaUrl || !chapter) return;
 
+      console.log(trackingInitialized);
+
       setIsLoading(true);
 
       const source = await getInfosPages(sourceId, mangaUrl);
