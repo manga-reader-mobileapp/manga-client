@@ -3,13 +3,13 @@
 import { API_URL } from "@/services/baseURL";
 import { getToken } from "@/services/token/takeToken";
 
-export const updateMangaCategory = async (data: {
-  mangaId: string[];
-  categoryId: string;
-}) => {
+export const updateLastChapter = async (
+  mangaId: string,
+  data: { chapter: string }
+) => {
   "use server";
 
-  const response = await fetch(`${API_URL}/mangas/update-category`, {
+  const response = await fetch(`${API_URL}/mangas/last-chapter/${mangaId}`, {
     method: "PUT",
     headers: {
       "Content-type": "application/json",

@@ -4,6 +4,7 @@ import { getListCategory } from "@/api/category/getAll";
 import { getUniqueManga } from "@/api/library/unique/getUniqueManga";
 import { updateLastRead } from "@/api/library/unique/updateLastRead";
 import { updateMangaCategory } from "@/api/library/updateCategory";
+import { updateLastChapter } from "@/api/library/updateLastChapter";
 import { favoriteSavedManga } from "@/api/sources/geral/favoriteSavedManga";
 import { unfavoriteManga } from "@/api/sources/geral/unfavoriteManga";
 import { fetchChaptersFromMangalivre } from "@/api/sources/manga-livre/fetchChapters";
@@ -74,7 +75,15 @@ export default function MangaPage() {
         extractChapterNumber(response[response.length - 1].title)
       );
 
-      setLastChapter(extractChapterNumber(response[0].title));
+      const lastChapter = extractChapterNumber(response[0].title);
+
+      setLastChapter(lastChapter);
+
+      if (lastChapter.number !== extractChapterNumber(manga.chapters).number) {
+        await updateLastChapter(mangaId, {
+          chapter: lastChapter.raw,
+        });
+      }
     }
 
     if (manga.sourceName === "seita-celestial") {
@@ -89,7 +98,15 @@ export default function MangaPage() {
         extractChapterNumber(response[response.length - 1].title)
       );
 
-      setLastChapter(extractChapterNumber(response[0].title));
+      const lastChapter = extractChapterNumber(response[0].title);
+
+      setLastChapter(lastChapter);
+
+      if (lastChapter.number !== extractChapterNumber(manga.chapters).number) {
+        await updateLastChapter(mangaId, {
+          chapter: lastChapter.raw,
+        });
+      }
     }
   };
 
