@@ -71,3 +71,10 @@ export type HistoryGroup = {
   date: string;
   entries: HistoryEntry[];
 };
+
+//Pages
+
+export type Pages = {
+  imageUrl: string;
+  pageNumber: number;
+};

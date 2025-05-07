@@ -114,7 +114,7 @@ export default function Categories() {
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-neutral-900 text-white w-full relative">
       {/* Header fixo */}
-      <div className="pt-4 px-5 flex items-center gap-4 shrink-0">
+      <div className="pt-4 px-5 sm:px-4 md:px-16 lg:px-72 xl:px-96 flex items-center gap-4 shrink-0">
         <button
           className="text-white text-2xl cursor-pointer"
           onClick={() => push(`/reader/more`)}

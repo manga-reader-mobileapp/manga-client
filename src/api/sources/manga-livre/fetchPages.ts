@@ -1,5 +1,6 @@
 "use server";
 
+import { Pages } from "@/type/types";
 import { load } from "cheerio";
 
 export async function fetchPagesFromMangalivre(chapterUrl: string) {
@@ -30,10 +31,7 @@ export async function fetchPagesFromMangalivre(chapterUrl: string) {
     const html = await res.text();
     const $ = load(html);
 
-    const chapterImages: {
-      imageUrl: string;
-      pageNumber: number;
-    }[] = [];
+    const chapterImages: Pages[] = [];
 
     // Pegando o ID do capítulo atual (pode ser útil para navegação ou histórico)
     const currentChapterId = $("#wp-manga-current-chap").attr("value") || "";

@@ -1,6 +1,6 @@
 "use server";
 
-import { load } from "cheerio";
+import { Pages } from "@/type/types";
 
 export async function fetchPagesFromSeitaCelestial(chapterUrl: string) {
   try {
@@ -23,47 +23,46 @@ export async function fetchPagesFromSeitaCelestial(chapterUrl: string) {
     });
 
     if (!res.ok) {
-      console.log(res);
       throw new Error(`Erro ao buscar capítulo: ${res.status}`);
     }
 
     const html = await res.text();
-    const $ = load(html);
 
-    // Adicionar log para depuração do HTML carregado
-    const chapterImages: {
-      imageUrl: string;
-      pageNumber: number;
-    }[] = [];
-    const scriptData = $("script").html(); // Pega o conteúdo de todos os <script> tags
-    console.log(scriptData);
+    // Procurar pelo padrão específico do script ts_reader.run
+    const scriptRegex = /ts_reader\.run\(([\s\S]*?)\);/;
 
-    // Tente encontrar as imagens com a classe correta
-    $(".ts-main-image").each((index, element) => {
-      const imageUrl = $(element).attr("src")?.trim() || "";
+    const match = html.match(scriptRegex);
 
-      // Verificar se a URL não está vazia antes de adicionar
-      if (imageUrl) {
-        chapterImages.push({
-          imageUrl,
-          pageNumber: index + 1, // Começa em 1
-        });
-      }
-    });
+    if (!match || !match[1]) {
+      throw new Error("Não foi possível encontrar dados do script ts_reader");
+    }
 
-    if (chapterImages.length === 0) {
-      console.log("Nenhuma imagem encontrada com a classe '.ts-main-image'");
+    // Extrair o JSON do script
+    const jsonData = JSON.parse(match[1]);
+
+    // Extrair os links das imagens
+    const chapterImages: Pages[] = [];
+    if (jsonData.sources && jsonData.sources.length > 0) {
+      const images = jsonData.sources[0].images || [];
+
+      images.forEach((imageUrl: string | undefined, index: number) => {
+        if (imageUrl) {
+          chapterImages.push({
+            imageUrl,
+            pageNumber: index + 1, // Começa em 1
+          });
+        }
+      });
     }
 
     return {
       totalPages: chapterImages.length,
       images: chapterImages,
+      prevUrl: jsonData.prevUrl || null,
+      nextUrl: jsonData.nextUrl || null,
     };
   } catch (error) {
     console.error("Erro ao buscar imagens do capítulo:", error);
-    return {
-      totalPages: 0,
-      images: [],
-    };
+    return;
   }
 }

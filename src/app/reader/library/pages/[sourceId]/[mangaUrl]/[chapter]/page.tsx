@@ -4,6 +4,7 @@ import { getInfosPages } from "@/api/library/unique/getInfosPages";
 import { updateLastRead } from "@/api/library/unique/updateLastRead";
 import { fetchChaptersFromMangalivre } from "@/api/sources/manga-livre/fetchChapters";
 import { fetchPagesFromMangalivre } from "@/api/sources/manga-livre/fetchPages";
+import { fetchChaptersFromSeitaCelestial } from "@/api/sources/seita-celestial/fetchChapters.";
 import { fetchPagesFromSeitaCelestial } from "@/api/sources/seita-celestial/fetchPages";
 import { extractChapterNumber } from "@/services/extractChapterNumber";
 import { replaceDotsWithHyphens } from "@/services/replaceDotsWithHyphens";
@@ -146,8 +147,17 @@ export default function MangaChapterViewer() {
   const getChapters = async (url: string) => {
     if (!mangaUrl) return;
 
-    if (sourceId === "seita-celestial" || sourceId === "manga-livre") {
+    if (sourceId === "manga-livre") {
       const response = await fetchChaptersFromMangalivre(url, mangaUrl);
+
+      if (!response) return;
+      setChapters(response);
+    }
+
+    if (sourceId === "seita-celestial") {
+      const response = await fetchChaptersFromSeitaCelestial(
+        url + "/comics/" + mangaUrl
+      );
 
       if (!response) return;
       setChapters(response);
@@ -197,15 +207,13 @@ export default function MangaChapterViewer() {
         if (response) {
           setPages(response);
 
-          console.log(response);
-
           setIsLoading(false);
 
-          // getChapters(source.url);
+          getChapters(source.url);
 
           return;
         }
-        // back();
+        back();
       }
     };
 
