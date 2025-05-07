@@ -2,9 +2,9 @@
 
 import { getInfosPages } from "@/api/library/unique/getInfosPages";
 import { updateLastRead } from "@/api/library/unique/updateLastRead";
-import { fetchPagesFromLerMangas } from "@/api/sources/ler-manga/fetchPages";
 import { fetchChaptersFromMangalivre } from "@/api/sources/manga-livre/fetchChapters";
 import { fetchPagesFromMangalivre } from "@/api/sources/manga-livre/fetchPages";
+import { fetchPagesFromSeitaCelestial } from "@/api/sources/seita-celestial/fetchPages";
 import { extractChapterNumber } from "@/services/extractChapterNumber";
 import { replaceDotsWithHyphens } from "@/services/replaceDotsWithHyphens";
 import { Chapter, ObjectPages } from "@/type/types";
@@ -39,9 +39,6 @@ export default function MangaChapterViewer() {
 
   // Função para forçar verificação de páginas visíveis
   const checkVisiblePagesRef = useRef<() => void>(() => {});
-
-  // Flag para indicar se o rastreamento foi inicializado
-  const [trackingInitialized, setTrackingInitialized] = useState(false);
 
   const [manga, setManga] = useState<{
     chapters: number;
@@ -149,7 +146,7 @@ export default function MangaChapterViewer() {
   const getChapters = async (url: string) => {
     if (!mangaUrl) return;
 
-    if (sourceId === "ler-mangas" || sourceId === "manga-livre") {
+    if (sourceId === "seita-celestial" || sourceId === "manga-livre") {
       const response = await fetchChaptersFromMangalivre(url, mangaUrl);
 
       if (!response) return;
@@ -160,8 +157,6 @@ export default function MangaChapterViewer() {
   useEffect(() => {
     const fetchPages = async () => {
       if (!sourceId || !mangaUrl || !chapter) return;
-
-      console.log(trackingInitialized);
 
       setIsLoading(true);
 
@@ -177,9 +172,7 @@ export default function MangaChapterViewer() {
         setManga(source);
 
         const response = await fetchPagesFromMangalivre(
-          `${source.url}/manga/${mangaUrl}/capitulo-${replaceDotsWithHyphens(
-            chapter
-          )}/`
+          `${source.url}/manga/${mangaUrl}/${chapter}`
         );
 
         if (response) {
@@ -196,23 +189,23 @@ export default function MangaChapterViewer() {
         back();
       }
 
-      if (sourceId === "ler-mangas") {
-        const response = await fetchPagesFromLerMangas(
-          `${source.url}/manga/${mangaUrl}/capitulo-${replaceDotsWithHyphens(
-            chapter
-          )}/`
+      if (sourceId === "seita-celestial") {
+        const response = await fetchPagesFromSeitaCelestial(
+          `${source.url}/${mangaUrl}-chapter-${chapter}`
         );
 
         if (response) {
           setPages(response);
 
+          console.log(response);
+
           setIsLoading(false);
 
-          getChapters(source.url);
+          // getChapters(source.url);
 
           return;
         }
-        back();
+        // back();
       }
     };
 
@@ -345,8 +338,6 @@ export default function MangaChapterViewer() {
 
     setTimeout(checkVisiblePages, 500);
 
-    setTrackingInitialized(true);
-
     return () => {
       window.removeEventListener("scroll", checkVisiblePages);
       window.removeEventListener("resize", checkVisiblePages);
@@ -386,7 +377,7 @@ export default function MangaChapterViewer() {
 
     const nextChapter = sorted[nextIndex];
 
-    if (sourceId === "manga-livre" || sourceId === "ler-mangas") {
+    if (sourceId === "manga-livre" || sourceId === "seita-celestial") {
       return `/reader/library/pages/${sourceId}/${mangaUrl}/${replaceDotsWithHyphens(
         nextChapter.rawNumber
       )}`;
@@ -451,7 +442,7 @@ export default function MangaChapterViewer() {
                   {index + 1}/{pages.images.length}
                 </div>
 
-                {sourceId === "ler-mangas" ? (
+                {sourceId === "seita-celestial" ? (
                   <img
                     loading="lazy"
                     src={`/api/proxy?url=${page.imageUrl}`}
@@ -515,7 +506,9 @@ export default function MangaChapterViewer() {
 
             {/* Capítulo e Página */}
             <div className="flex flex-col items-center">
-              <div className="font-semibold text-base">Capítulo {chapter}</div>
+              <div className="font-semibold text-base">
+                Capítulo {extractChapterNumber(chapter).raw}
+              </div>
               <div className="text-xs text-zinc-300">
                 Página {currentPage} de {pages.images.length}
               </div>

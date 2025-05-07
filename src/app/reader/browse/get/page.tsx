@@ -1,10 +1,10 @@
 "use client";
 
 import { getUniqueSource } from "@/api/sources/getUniqueSource";
-import { fetchMangasLerMangas } from "@/api/sources/ler-manga/fetchMangas";
-import { searchMangasLerMangas } from "@/api/sources/ler-manga/searchMangas";
 import { fetchMangasMangaLivre } from "@/api/sources/manga-livre/fetchMangas";
 import { searchMangasMangaLivre } from "@/api/sources/manga-livre/searchMangas";
+import { fetchMangasSeitaCelestial } from "@/api/sources/seita-celestial/fetchMangas";
+import { searchMangasSeitaCelestial } from "@/api/sources/seita-celestial/searchMangas";
 import PopoverPage from "@/components/source/popover/page";
 import { Search } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -46,7 +46,7 @@ export default function MangaLivrePage() {
     const fetchSources = async () => {
       try {
         const mangaLivreSource = await getUniqueSource("manga-livre");
-        const lerMangasSource = await getUniqueSource("ler-mangas");
+        const lerMangasSource = await getUniqueSource("seita-celestial");
 
         sourcesDataRef.current = {
           mangaLivre: mangaLivreSource,
@@ -99,16 +99,16 @@ export default function MangaLivrePage() {
           }
         }
 
-        if (activeSource === "ler-mangas") {
+        if (activeSource === "seita-celestial") {
           if (lerMangasSource) {
-            const lerMangasResults = await fetchMangasLerMangas(
+            const lerMangasResults = await fetchMangasSeitaCelestial(
               lerMangasSource.url,
               pageNum
             );
             if (lerMangasResults && Array.isArray(lerMangasResults)) {
               const taggedResults = lerMangasResults.map((manga) => ({
                 ...manga,
-                source: "ler-mangas",
+                source: "seita-celestial",
               }));
               allMangas = [...allMangas, ...taggedResults];
             }
@@ -162,16 +162,16 @@ export default function MangaLivrePage() {
           }
         }
 
-        if (activeSource === "ler-mangas" && lerMangasSource) {
-          const lerMangasResults = await searchMangasLerMangas(
+        if (activeSource === "seita-celestial" && lerMangasSource) {
+          const seitaCelestialResults = await searchMangasSeitaCelestial(
             lerMangasSource.url,
             searchQuery,
             pageNum
           );
-          if (lerMangasResults && Array.isArray(lerMangasResults)) {
-            const taggedResults = lerMangasResults.map((manga) => ({
+          if (seitaCelestialResults && Array.isArray(seitaCelestialResults)) {
+            const taggedResults = seitaCelestialResults.map((manga) => ({
               ...manga,
-              source: "ler-mangas",
+              source: "seita-celestial",
             }));
             allSearchResults = [...allSearchResults, ...taggedResults];
           }
@@ -353,17 +353,17 @@ export default function MangaLivrePage() {
           >
             Manga Livre
           </button>
-          {/* <button
-            onClick={() => changeSource("ler-mangas")}
+          <button
+            onClick={() => changeSource("seita-celestial")}
             className={`px-3 py-1 rounded-md text-sm ${
-              activeSource === "ler-mangas"
+              activeSource === "seita-celestial"
                 ? "bg-blue-500 text-white"
                 : "bg-gray-700 text-gray-300 hover:bg-gray-600"
             } ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
             disabled={loading}
           >
-            Ler Mangas
-          </button> */}
+            Seita Celestial
+          </button>
         </div>
       </div>
 

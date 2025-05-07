@@ -3,6 +3,11 @@
 import { Chapter } from "@/type/types";
 import { load } from "cheerio";
 
+function extractChapterSlug(chapterUrl: string): string {
+  const parts = chapterUrl.split("/").filter(Boolean); // Remove strings vazias
+  return parts[parts.length - 1]; // Última parte da URL
+}
+
 export async function fetchChaptersFromMangalivre(
   url: string,
   mangaId: string
@@ -44,8 +49,9 @@ export async function fetchChaptersFromMangalivre(
       const title = a.text().trim();
       const url = a.attr("href") || "";
       const date = $(element).find(".chapter-release-date i").text().trim();
+      const chapterSlug = extractChapterSlug(url);
 
-      chapters.push({ title, url, date });
+      chapters.push({ title, url, date, chapterSlug });
     });
 
     return chapters;

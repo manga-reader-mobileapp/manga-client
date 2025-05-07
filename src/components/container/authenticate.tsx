@@ -1,5 +1,4 @@
 "use server";
-import logout from "@/api/logout";
 import { API_URL } from "@/services/baseURL";
 import { getToken } from "@/services/token/takeToken";
 import { redirect } from "next/navigation";
@@ -23,9 +22,7 @@ export default async function Authenticated({
       });
 
       if (res.status !== 201 && res.status !== 200) {
-        await logout();
-        redirect("/");
-        return;
+        redirect("/logout");
       } else {
         const data = await res.json();
         return data;
@@ -36,8 +33,7 @@ export default async function Authenticated({
   const user = await getUser();
 
   if (!user) {
-    await logout();
-    redirect("/");
+    redirect("/logout");
   }
 
   return (

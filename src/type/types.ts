@@ -36,6 +36,7 @@ export type Chapter = {
   title: string;
   url: string;
   date: string;
+  chapterSlug?: string;
 };
 
 export type Page = {

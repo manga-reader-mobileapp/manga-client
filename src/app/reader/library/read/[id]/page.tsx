@@ -6,8 +6,8 @@ import { updateLastRead } from "@/api/library/unique/updateLastRead";
 import { updateMangaCategory } from "@/api/library/updateCategory";
 import { favoriteSavedManga } from "@/api/sources/geral/favoriteSavedManga";
 import { unfavoriteManga } from "@/api/sources/geral/unfavoriteManga";
-import { fetchChaptersFromLerMangas } from "@/api/sources/ler-manga/fetchChapters";
 import { fetchChaptersFromMangalivre } from "@/api/sources/manga-livre/fetchChapters";
+import { fetchChaptersFromSeitaCelestial } from "@/api/sources/seita-celestial/fetchChapters.";
 import Popup from "@/components/popup/page";
 import ShareButton from "@/components/tools/sharingButton";
 import { Button } from "@/components/ui/button";
@@ -77,8 +77,10 @@ export default function MangaPage() {
       setLastChapter(extractChapterNumber(response[0].title));
     }
 
-    if (manga.sourceName === "ler-mangas") {
-      const response = await fetchChaptersFromLerMangas(url, manga.url);
+    if (manga.sourceName === "seita-celestial") {
+      const response = await fetchChaptersFromSeitaCelestial(
+        url + "/comics/" + manga.url
+      );
 
       if (!response) return;
       setChapters(response);
@@ -137,6 +139,12 @@ export default function MangaPage() {
     }
 
     return response;
+  };
+
+  const hadlePushChapter = (chapterNumber: Chapter) => {
+    push(
+      `/reader/library/pages/${manga.sourceName}/${manga.url}/${chapterNumber.chapterSlug}`
+    );
   };
 
   return (
@@ -234,6 +242,13 @@ export default function MangaPage() {
                     ) {
                       window.open(
                         manga.sourceUrl + "/manga/" + manga.url,
+                        "_blank"
+                      );
+                    }
+
+                    if (manga.sourceName === "seita-celestial") {
+                      window.open(
+                        manga.sourceUrl + "/comics/" + manga.url,
                         "_blank"
                       );
                     }
@@ -336,11 +351,7 @@ export default function MangaPage() {
               `}
                 key={index}
                 onClick={() => {
-                  push(
-                    `/reader/library/pages/${manga.sourceName}/${
-                      manga.url
-                    }/${replaceDotsWithHyphens(chapterNumber.raw)}`
-                  );
+                  hadlePushChapter(chapter);
                 }}
               >
                 <div>

@@ -2,7 +2,7 @@
 
 import { load } from "cheerio";
 
-export async function fetchPagesFromLerMangas(chapterUrl: string) {
+export async function fetchPagesFromSeitaCelestial(chapterUrl: string) {
   try {
     const res = await fetch(chapterUrl, {
       headers: {
@@ -11,7 +11,7 @@ export async function fetchPagesFromLerMangas(chapterUrl: string) {
         Accept:
           "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
         "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
-        Referer: "https://mangalivre.tv/",
+        Referer: "https://seitacelestial.com/",
         Connection: "keep-alive",
         "Upgrade-Insecure-Requests": "1",
         "Sec-Fetch-Dest": "document",
@@ -24,45 +24,44 @@ export async function fetchPagesFromLerMangas(chapterUrl: string) {
 
     if (!res.ok) {
       console.log(res);
-
       throw new Error(`Erro ao buscar capítulo: ${res.status}`);
     }
 
     const html = await res.text();
     const $ = load(html);
 
+    // Adicionar log para depuração do HTML carregado
     const chapterImages: {
       imageUrl: string;
       pageNumber: number;
     }[] = [];
+    const scriptData = $("script").html(); // Pega o conteúdo de todos os <script> tags
+    console.log(scriptData);
 
-    const currentChapterId =
-      $("#wp-manga-current-chap").attr("value")?.trim() || "";
+    // Tente encontrar as imagens com a classe correta
+    $(".ts-main-image").each((index, element) => {
+      const imageUrl = $(element).attr("src")?.trim() || "";
 
-    $(".page-break.no-gaps").each((index, element) => {
-      let imageUrl =
-        $(element).find("img.wp-manga-chapter-img").attr("src") || "";
-
-      // Limpa espaços em branco e quebras de linha
-      imageUrl = imageUrl.replace(/\s+/g, "");
-
+      // Verificar se a URL não está vazia antes de adicionar
       if (imageUrl) {
         chapterImages.push({
           imageUrl,
-          pageNumber: index + 1,
+          pageNumber: index + 1, // Começa em 1
         });
       }
     });
 
+    if (chapterImages.length === 0) {
+      console.log("Nenhuma imagem encontrada com a classe '.ts-main-image'");
+    }
+
     return {
-      chapterId: currentChapterId,
       totalPages: chapterImages.length,
       images: chapterImages,
     };
   } catch (error) {
     console.error("Erro ao buscar imagens do capítulo:", error);
     return {
-      chapterId: "",
       totalPages: 0,
       images: [],
     };
