@@ -1,6 +1,7 @@
 "use client";
 
-import { getUniqueSource } from "@/api/sources/getUniqueSource";
+import { fetchMangasBrMangas } from "@/api/sources/br-mangas/fetchMangas";
+import { getAllSources } from "@/api/sources/getAllSources";
 import { fetchMangasMangaLivre } from "@/api/sources/manga-livre/fetchMangas";
 import { searchMangasMangaLivre } from "@/api/sources/manga-livre/searchMangas";
 import { fetchMangasSeitaCelestial } from "@/api/sources/seita-celestial/fetchMangas";
@@ -19,6 +20,8 @@ type Manga = {
   source?: string;
 };
 
+type Source = { name: string; id: string; url: string };
+
 export default function MangaLivrePage() {
   const [mangas, setMangas] = useState<Manga[]>([]);
   const [page, setPage] = useState(1);
@@ -36,28 +39,28 @@ export default function MangaLivrePage() {
 
   const sourcesDataRef = useRef<{
     mangaLivre: { name: string; id: string; url: string } | null;
-    lerMangas: { name: string; id: string; url: string } | null;
+    seitaCelestial: { name: string; id: string; url: string } | null;
+    brMangas: { name: string; id: string; url: string } | null;
   }>({
     mangaLivre: null,
-    lerMangas: null,
+    seitaCelestial: null,
+    brMangas: null,
   });
 
   useEffect(() => {
     const fetchSources = async () => {
       try {
-        const mangaLivreSource = await getUniqueSource("manga-livre");
-        const lerMangasSource = await getUniqueSource("seita-celestial");
+        const allSources = await getAllSources();
+
+        setSources(allSources);
 
         sourcesDataRef.current = {
-          mangaLivre: mangaLivreSource,
-          lerMangas: lerMangasSource,
+          mangaLivre: allSources.find((s: Source) => s.name === "manga-livre"),
+          seitaCelestial: allSources.find(
+            (s: Source) => s.name === "seita-celestial"
+          ),
+          brMangas: allSources.find((s: Source) => s.name === "br-mangas"),
         };
-
-        const validSources = [];
-        if (mangaLivreSource) validSources.push(mangaLivreSource);
-        if (lerMangasSource) validSources.push(lerMangasSource);
-
-        setSources(validSources);
 
         fetchAllMangas(1);
       } catch (error) {
@@ -72,10 +75,13 @@ export default function MangaLivrePage() {
     async (pageNum: number) => {
       if (isLoadingRef.current || !hasMoreData) return;
 
-      const { mangaLivre: mangaLivreSource, lerMangas: lerMangasSource } =
-        sourcesDataRef.current;
+      const {
+        mangaLivre: mangaLivreSource,
+        seitaCelestial: seitaCelestialSource,
+        brMangas: brMangasSource,
+      } = sourcesDataRef.current;
 
-      if (!mangaLivreSource && !lerMangasSource) return;
+      if (!mangaLivreSource && !seitaCelestialSource) return;
 
       setLoading(true);
       isLoadingRef.current = true;
@@ -100,15 +106,31 @@ export default function MangaLivrePage() {
         }
 
         if (activeSource === "seita-celestial") {
-          if (lerMangasSource) {
+          if (seitaCelestialSource) {
             const lerMangasResults = await fetchMangasSeitaCelestial(
-              lerMangasSource.url,
+              seitaCelestialSource.url,
               pageNum
             );
             if (lerMangasResults && Array.isArray(lerMangasResults)) {
               const taggedResults = lerMangasResults.map((manga) => ({
                 ...manga,
                 source: "seita-celestial",
+              }));
+              allMangas = [...allMangas, ...taggedResults];
+            }
+          }
+        }
+
+        if (activeSource === "br-mangas") {
+          if (brMangasSource) {
+            const brMangasResults = await fetchMangasBrMangas(
+              pageNum,
+              brMangasSource.url
+            );
+            if (brMangasResults && Array.isArray(brMangasResults)) {
+              const taggedResults = brMangasResults.map((manga) => ({
+                ...manga,
+                source: "br-mangas",
               }));
               allMangas = [...allMangas, ...taggedResults];
             }
@@ -138,8 +160,10 @@ export default function MangaLivrePage() {
     async (pageNum: number, searchQuery: string) => {
       if (isLoadingRef.current || !searchQuery || !hasMoreData) return;
 
-      const { mangaLivre: mangaLivreSource, lerMangas: lerMangasSource } =
-        sourcesDataRef.current;
+      const {
+        mangaLivre: mangaLivreSource,
+        seitaCelestial: seitaCelestialSource,
+      } = sourcesDataRef.current;
 
       setLoading(true);
       isLoadingRef.current = true;
@@ -162,9 +186,9 @@ export default function MangaLivrePage() {
           }
         }
 
-        if (activeSource === "seita-celestial" && lerMangasSource) {
+        if (activeSource === "seita-celestial" && seitaCelestialSource) {
           const seitaCelestialResults = await searchMangasSeitaCelestial(
-            lerMangasSource.url,
+            seitaCelestialSource.url,
             searchQuery,
             pageNum
           );
@@ -198,6 +222,8 @@ export default function MangaLivrePage() {
 
   const handleSearch = useCallback(() => {
     if (loading) return;
+    if (activeSource === "br-mangas") return;
+
     if (query.trim() === "") {
       resetSearch();
       return;
@@ -364,6 +390,17 @@ export default function MangaLivrePage() {
           >
             Seita Celestial
           </button>
+          <button
+            onClick={() => changeSource("br-mangas")}
+            className={`px-3 py-1 rounded-md text-sm ${
+              activeSource === "br-mangas"
+                ? "bg-blue-500 text-white"
+                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+            } ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+            disabled={loading}
+          >
+            Br Mangas
+          </button>
         </div>
       </div>
 
@@ -388,7 +425,11 @@ export default function MangaLivrePage() {
         {mangas.map((manga, index) => (
           <PopoverPage
             url={manga.url}
-            sourceId={sources.find((s) => s.name === activeSource)?.id || ""}
+            sourceId={
+              sources.find((s) => {
+                return s.name === activeSource;
+              })?.id || ""
+            }
             key={`manga-${index}`}
             title={manga.title || ""}
             img={manga.img || ""}

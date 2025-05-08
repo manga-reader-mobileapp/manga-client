@@ -2,6 +2,8 @@
 
 import { getInfosPages } from "@/api/library/unique/getInfosPages";
 import { updateLastRead } from "@/api/library/unique/updateLastRead";
+import { fetchChaptersFromBrMangas } from "@/api/sources/br-mangas/fetchChapters";
+import { fetchPagesFromBrMangas } from "@/api/sources/br-mangas/fetchPages";
 import { fetchChaptersFromMangalivre } from "@/api/sources/manga-livre/fetchChapters";
 import { fetchPagesFromMangalivre } from "@/api/sources/manga-livre/fetchPages";
 import { fetchChaptersFromSeitaCelestial } from "@/api/sources/seita-celestial/fetchChapters.";
@@ -162,6 +164,13 @@ export default function MangaChapterViewer() {
       if (!response) return;
       setChapters(response);
     }
+
+    if (sourceId === "br-mangas") {
+      const response = await fetchChaptersFromBrMangas(url, mangaUrl);
+
+      if (!response) return;
+      setChapters(response);
+    }
   };
 
   useEffect(() => {
@@ -213,8 +222,23 @@ export default function MangaChapterViewer() {
 
           return;
         }
-        back();
       }
+      if (sourceId === "br-mangas") {
+        const response = await fetchPagesFromBrMangas(
+          `${source.url}/manga/${mangaUrl}/capitulo-${chapter}`
+        );
+
+        if (response) {
+          setPages(response);
+
+          setIsLoading(false);
+
+          getChapters(source.url);
+
+          return;
+        }
+      }
+      // back();
     };
 
     fetchPages();
@@ -450,7 +474,7 @@ export default function MangaChapterViewer() {
                   {index + 1}/{pages.images.length}
                 </div>
 
-                {sourceId === "seita-celestial" ? (
+                {sourceId === "br-mangas" ? (
                   <img
                     loading="lazy"
                     src={`/api/proxy?url=${page.imageUrl}`}

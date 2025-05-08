@@ -78,6 +78,8 @@ export default function PopoverPage({
               <IoHeartOutline
                 className="text-red-500 text-2xl cursor-pointer"
                 onClick={async () => {
+                  console.log("Souce ID", sourceId);
+                  console.log(title, chapters, description, img, url);
                   const response = await favoriteManga(
                     {
                       title,

@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
     const response = await fetch(imageUrl, {
       headers: {
         "User-Agent": "Mozilla/5.0",
-        Referer: "https://lermangas.me",
+        Referer: "https://flowermanga.net/",
       },
     });
 

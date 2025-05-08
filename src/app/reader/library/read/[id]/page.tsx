@@ -5,6 +5,7 @@ import { getUniqueManga } from "@/api/library/unique/getUniqueManga";
 import { updateLastRead } from "@/api/library/unique/updateLastRead";
 import { updateMangaCategory } from "@/api/library/updateCategory";
 import { updateLastChapter } from "@/api/library/updateLastChapter";
+import { fetchChaptersFromBrMangas } from "@/api/sources/br-mangas/fetchChapters";
 import { favoriteSavedManga } from "@/api/sources/geral/favoriteSavedManga";
 import { unfavoriteManga } from "@/api/sources/geral/unfavoriteManga";
 import { fetchChaptersFromMangalivre } from "@/api/sources/manga-livre/fetchChapters";
@@ -67,6 +68,27 @@ export default function MangaPage() {
 
     if (manga.sourceName === "manga-livre") {
       const response = await fetchChaptersFromMangalivre(url, manga.url);
+
+      if (!response) return;
+      setChapters(response);
+
+      setFirstChapter(
+        extractChapterNumber(response[response.length - 1].title)
+      );
+
+      const lastChapter = extractChapterNumber(response[0].title);
+
+      setLastChapter(lastChapter);
+
+      if (lastChapter.number !== extractChapterNumber(manga.chapters).number) {
+        await updateLastChapter(mangaId, {
+          chapter: lastChapter.raw,
+        });
+      }
+    }
+
+    if (manga.sourceName === "br-mangas") {
+      const response = await fetchChaptersFromBrMangas(url, manga.url);
 
       if (!response) return;
       setChapters(response);
@@ -255,7 +277,8 @@ export default function MangaPage() {
                   onClick={() => {
                     if (
                       manga.sourceName === "manga-livre" ||
-                      manga.sourceName === "ler-mangas"
+                      manga.sourceName === "ler-mangas" ||
+                      manga.sourceName === "br-mangas"
                     ) {
                       window.open(
                         manga.sourceUrl + "/manga/" + manga.url,

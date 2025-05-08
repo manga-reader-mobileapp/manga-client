@@ -4,6 +4,7 @@ import { Pages } from "@/type/types";
 
 export async function fetchPagesFromSeitaCelestial(chapterUrl: string) {
   try {
+    console.log(chapterUrl);
     const res = await fetch(chapterUrl, {
       headers: {
         "User-Agent":
@@ -21,6 +22,8 @@ export async function fetchPagesFromSeitaCelestial(chapterUrl: string) {
       },
       cache: "no-store",
     });
+
+    console.log(res);
 
     if (!res.ok) {
       throw new Error(`Erro ao buscar capítulo: ${res.status}`);
