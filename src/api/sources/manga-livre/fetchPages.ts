@@ -5,6 +5,8 @@ import { load } from "cheerio";
 
 export async function fetchPagesFromMangalivre(chapterUrl: string) {
   try {
+    console.log(chapterUrl);
+
     const res = await fetch(chapterUrl, {
       headers: {
         "User-Agent":

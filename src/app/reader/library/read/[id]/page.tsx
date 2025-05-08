@@ -14,7 +14,6 @@ import Popup from "@/components/popup/page";
 import ShareButton from "@/components/tools/sharingButton";
 import { Button } from "@/components/ui/button";
 import { extractChapterNumber } from "@/services/extractChapterNumber";
-import { replaceDotsWithHyphens } from "@/services/replaceDotsWithHyphens";
 import { Category, Chapter, Manga } from "@/type/types";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -88,6 +87,7 @@ export default function MangaPage() {
     }
 
     if (manga.sourceName === "br-mangas") {
+      console.log(url, manga.url);
       const response = await fetchChaptersFromBrMangas(url, manga.url);
 
       if (!response) return;
@@ -180,7 +180,7 @@ export default function MangaPage() {
     return response;
   };
 
-  const hadlePushChapter = (chapterNumber: Chapter) => {
+  const handlePushChapter = (chapterNumber: Chapter) => {
     push(
       `/reader/library/pages/${manga.sourceName}/${manga.url}/${chapterNumber.chapterSlug}`
     );
@@ -315,11 +315,7 @@ export default function MangaPage() {
               onClick={() => {
                 // Se não leu nenhum capítulo ainda
                 if (!manga.lastChapter) {
-                  push(
-                    `/reader/library/pages/${manga.sourceName}/${
-                      manga.url
-                    }/${replaceDotsWithHyphens(firstChapter.raw)}`
-                  );
+                  handlePushChapter(chapters[chapters.length - 1]);
                   return;
                 }
 
@@ -331,25 +327,15 @@ export default function MangaPage() {
 
                 // Se o capítulo atual não está na lista, fallback para o primeiro
                 if (currentIndex === -1) {
-                  push(
-                    `/reader/library/pages/${manga.sourceName}/${
-                      manga.url
-                    }/${replaceDotsWithHyphens(firstChapter.raw)}`
-                  );
+                  handlePushChapter(chapters[chapters.length - 1]);
                   return;
                 }
 
                 // Pegar o próximo capítulo, se existir
-                const next = extractChapterNumber(
-                  chapters[currentIndex - 1].title
-                ).raw;
+                const next = chapters[currentIndex - 1];
 
                 if (next) {
-                  push(
-                    `/reader/library/pages/${manga.sourceName}/${
-                      manga.url
-                    }/${replaceDotsWithHyphens(next)}`
-                  );
+                  handlePushChapter(next);
                 } else {
                   alert("Você já está no último capítulo.");
                 }
@@ -391,7 +377,7 @@ export default function MangaPage() {
               `}
                 key={index}
                 onClick={() => {
-                  hadlePushChapter(chapter);
+                  handlePushChapter(chapter);
                 }}
               >
                 <div>

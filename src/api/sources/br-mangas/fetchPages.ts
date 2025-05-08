@@ -25,7 +25,6 @@ export async function fetchPagesFromBrMangas(chapterUrl: string) {
     });
 
     if (!res.ok) {
-      console.log(res);
       throw new Error(`Erro ao buscar capítulo: ${res.status}`);
     }
 
@@ -59,8 +58,6 @@ export async function fetchPagesFromBrMangas(chapterUrl: string) {
         });
       }
     });
-
-    console.log(chapterImages);
 
     return {
       chapterId: currentChapterId,

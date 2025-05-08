@@ -13,6 +13,7 @@ export async function fetchChaptersFromBrMangas(
   mangaId: string
 ): Promise<Chapter[]> {
   try {
+    console.log(url, mangaId);
     const mangaUrl = `${url}/manga/${mangaId}/`;
 
     console.log(mangaUrl);

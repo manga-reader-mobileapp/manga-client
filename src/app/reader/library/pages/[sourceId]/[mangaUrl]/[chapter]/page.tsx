@@ -9,7 +9,6 @@ import { fetchPagesFromMangalivre } from "@/api/sources/manga-livre/fetchPages";
 import { fetchChaptersFromSeitaCelestial } from "@/api/sources/seita-celestial/fetchChapters.";
 import { fetchPagesFromSeitaCelestial } from "@/api/sources/seita-celestial/fetchPages";
 import { extractChapterNumber } from "@/services/extractChapterNumber";
-import { replaceDotsWithHyphens } from "@/services/replaceDotsWithHyphens";
 import { Chapter, ObjectPages } from "@/type/types";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -225,7 +224,7 @@ export default function MangaChapterViewer() {
       }
       if (sourceId === "br-mangas") {
         const response = await fetchPagesFromBrMangas(
-          `${source.url}/manga/${mangaUrl}/capitulo-${chapter}`
+          `${source.url}/manga/${mangaUrl}/${chapter}`
         );
 
         if (response) {
@@ -387,7 +386,7 @@ export default function MangaChapterViewer() {
     };
   }, [isLoading, pages.images, currentPage]);
 
-  function navigateChapter(direction: "next" | "prev"): string | null {
+  function navigateChapter(direction: "next" | "prev"): Chapter | null {
     const { number: currentNumber } = extractChapterNumber(chapter);
 
     const chapterNumbers = chapters.map((ch) => {
@@ -409,13 +408,7 @@ export default function MangaChapterViewer() {
 
     const nextChapter = sorted[nextIndex];
 
-    if (sourceId === "manga-livre" || sourceId === "seita-celestial") {
-      return `/reader/library/pages/${sourceId}/${mangaUrl}/${replaceDotsWithHyphens(
-        nextChapter.rawNumber
-      )}`;
-    }
-
-    return nextChapter.url;
+    return nextChapter;
   }
 
   function isFirstOrLastChapter(): { isFirst: boolean; isLast: boolean } {
@@ -435,6 +428,12 @@ export default function MangaChapterViewer() {
 
     return { isFirst, isLast };
   }
+
+  const handlePushChapter = (chapterNumber: Chapter) => {
+    push(
+      `/reader/library/pages/${sourceId}/${mangaUrl}/${chapterNumber.chapterSlug}`
+    );
+  };
 
   const { isFirst, isLast } = isFirstOrLastChapter();
 
@@ -538,7 +537,7 @@ export default function MangaChapterViewer() {
 
             {/* Capítulo e Página */}
             <div className="flex flex-col items-center">
-              <div className="font-semibold text-base">
+              <div className="font-semibold text-sm">
                 Capítulo {extractChapterNumber(chapter).raw}
               </div>
               <div className="text-xs text-zinc-300">
@@ -552,7 +551,7 @@ export default function MangaChapterViewer() {
                 onClick={() => {
                   const url = navigateChapter("prev");
                   if (url) {
-                    push(url);
+                    handlePushChapter(url);
 
                     return;
                   }
@@ -584,7 +583,7 @@ export default function MangaChapterViewer() {
                   const url = navigateChapter("next");
 
                   if (url) {
-                    push(url);
+                    handlePushChapter(url);
 
                     return;
                   }

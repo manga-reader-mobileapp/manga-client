@@ -4,9 +4,17 @@ import { load } from "cheerio";
 const controller = new AbortController();
 
 function cleanMangaId(mangaId: string): string {
-  return mangaId.replace(/^\/|\/$/g, "").replace(/^manga\//, "");
-}
+  // Primeiro, vamos remover protocolo e domínio se existirem
+  const urlWithoutDomain = mangaId.replace(/^https?:\/\/[^\/]+/, "");
 
+  // Agora removemos barras no início e fim
+  const trimmedUrl = urlWithoutDomain.replace(/^\/|\/$/g, "");
+
+  // Por fim, removemos o prefixo "manga/"
+  const cleanId = trimmedUrl.replace(/^manga\//, "");
+
+  return cleanId;
+}
 export async function fetchMangasBrMangas(page: number, url: string) {
   console.log(`Tentando buscar: ${page === 1 ? url : `${url}/page/${page}/`}`);
 
@@ -33,7 +41,6 @@ export async function fetchMangasBrMangas(page: number, url: string) {
     });
 
     if (!res.ok) {
-      console.log(res);
       throw new Error(`Erro ao buscar página: ${res.status}`);
     }
 
@@ -77,8 +84,6 @@ export async function fetchMangasBrMangas(page: number, url: string) {
         description: "",
       });
     });
-
-    console.log(mangas);
 
     return mangas;
   } catch (error) {
