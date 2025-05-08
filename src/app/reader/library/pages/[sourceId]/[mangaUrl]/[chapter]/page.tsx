@@ -571,7 +571,7 @@ export default function MangaChapterViewer() {
               <button
                 onClick={async () => {
                   await updateLastRead(manga.id, {
-                    chapter: chapter,
+                    chapter: extractChapterNumber(chapter).raw,
                   });
 
                   if (isLast) {
