@@ -74,6 +74,6 @@ export async function searchMangasMangaLivre(
     return mangas;
   } catch (error) {
     console.error("Erro ao buscar mangás:", error);
-    return [];
+    return null;
   }
 }

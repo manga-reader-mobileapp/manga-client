@@ -56,6 +56,6 @@ export async function searchMangasSeitaCelestial(
     return results;
   } catch (error) {
     console.error("Erro ao buscar mangás da Seita Celestial:", error);
-    return [];
+    return null;
   }
 }

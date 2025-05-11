@@ -35,6 +35,13 @@ export default function PopoverPage({
       setIsLoading(true);
 
       const response = await verifyFavorited(url, sourceId);
+
+      if (!response) {
+        toast.error("Erro ao buscar favoritado");
+        setOpenPopoverIndex(false);
+        return;
+      }
+
       if (response && response.isFavorite) {
         setIsFavorite(true);
       }
@@ -56,7 +63,7 @@ export default function PopoverPage({
         />
 
         {openPopoverIndex && (
-          <div className="absolute top-full left-1/2 -translate-x-1/2 bg-white p-3 rounded-xl shadow-lg z-40">
+          <div className="absolute top-1 right-0 -translate-y-full bg-white p-3 rounded-xl shadow-lg z-40">
             {isLoading ? (
               <div className="flex justify-center items-center">
                 <span className="text-black text-sm">Carregando...</span>
@@ -78,8 +85,6 @@ export default function PopoverPage({
               <IoHeartOutline
                 className="text-red-500 text-2xl cursor-pointer"
                 onClick={async () => {
-                  console.log("Souce ID", sourceId);
-                  console.log(title, chapters, description, img, url);
                   const response = await favoriteManga(
                     {
                       title,

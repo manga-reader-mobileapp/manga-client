@@ -6,6 +6,7 @@ import { fetchMangasMangaDex } from "@/api/sources/manga-dex/fetchMangas";
 import { fetchMangasMangaLivre } from "@/api/sources/manga-livre/fetchMangas";
 import { fetchMangasSeitaCelestial } from "@/api/sources/seita-celestial/fetchMangas";
 import PopoverPage from "@/components/source/popover/page";
+import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { IoIosArrowDropleftCircle } from "react-icons/io";
 
@@ -21,6 +22,9 @@ type Manga = {
 type Source = { name: string; id: string; url: string };
 
 export default function MangaLivrePage() {
+  const params = useParams();
+  const sourceId = params["sourceId"] as string;
+
   const [mangas, setMangas] = useState<Manga[]>([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -30,6 +34,8 @@ export default function MangaLivrePage() {
   const [hasMoreData, setHasMoreData] = useState(true);
   const [sources, setSources] = useState<{ name: string; id: string }[]>([]);
   const [activeSource, setActiveSource] = useState<string>("manga-livre");
+
+  const { push } = useRouter();
 
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [query, setQuery] = useState("");
@@ -61,6 +67,20 @@ export default function MangaLivrePage() {
           brMangas: allSources.find((s: Source) => s.name === "br-mangas"),
           mangaDex: allSources.find((s: Source) => s.name === "manga-dex"),
         };
+
+        console.log(sourceId);
+
+        if (
+          sourceId === "manga-livre" ||
+          sourceId === "seita-celestial" ||
+          sourceId === "br-mangas" ||
+          sourceId === "manga-dex"
+        ) {
+          setActiveSource(sourceId);
+
+          return;
+        }
+        setActiveSource("manga-livre");
 
         fetchAllMangas(1);
       } catch (error) {
@@ -354,7 +374,7 @@ export default function MangaLivrePage() {
 
       <button
         className="fixed bottom-4 left-4 z-50 bg-white cursor-pointer text-black px-2 py-2 rounded-2xl shadow-lg transition-colors duration-200 hover:bg-white/80"
-        onClick={() => window.history.back()}
+        onClick={() => push("/reader/browse")}
       >
         <IoIosArrowDropleftCircle size={24} />
       </button>

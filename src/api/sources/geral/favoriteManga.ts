@@ -14,6 +14,7 @@ export const favoriteManga = async (
   sourceId: string
 ) => {
   "use server";
+
   const response = await fetch(`${API_URL}/mangas/favorite/${sourceId}`, {
     method: "POST",
     headers: {

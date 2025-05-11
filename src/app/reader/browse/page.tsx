@@ -3,6 +3,7 @@
 import BottomMenu from "@/components/menu/bottomMenu";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { IoSearch } from "react-icons/io5";
 
 export default function BrowsePage() {
   const { push } = useRouter();
@@ -12,6 +13,8 @@ export default function BrowsePage() {
       {/* Header fixo */}
       <div className="pt-4 px-5 flex items-center justify-between shrink-0">
         <h1 className="text-2xl">Browse</h1>
+
+        <IoSearch size={24} onClick={() => push("/reader/browse/search")} />
       </div>
 
       {/* <div className="px-5">
@@ -29,13 +32,13 @@ export default function BrowsePage() {
               className="w-12 h-12 object-cover rounded-2xl"
             />
 
-            <p>Mangás</p>
+            <p>Mangá livre</p>
           </div>
           <Button
             variant="ghost"
             className="cursor-pointer"
             onClick={() => {
-              push("/reader/browse/get");
+              push("/reader/browse/");
             }}
           >
             Recentes
