@@ -68,8 +68,6 @@ export default function MangaLivrePage() {
           mangaDex: allSources.find((s: Source) => s.name === "manga-dex"),
         };
 
-        console.log(sourceId);
-
         if (
           sourceId === "manga-livre" ||
           sourceId === "seita-celestial" ||

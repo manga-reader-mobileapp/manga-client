@@ -22,8 +22,23 @@ export async function fetchMangasMangaDex(page: number = 1, baseUrl: string) {
 
     const data = await res.json();
 
-    const mangas = data.data.map((item: any) => {
+    const mangas: {
+      title: string;
+      img: string;
+      chapters: string;
+      url: string;
+      description: string;
+    }[] = [];
+
+    data.data.map((item: any) => {
       const attributes = item.attributes;
+
+      if (
+        !attributes.availableTranslatedLanguages.find(
+          (t: string) => t === "pt-br"
+        )
+      )
+        return null;
 
       const title =
         attributes.title["pt-br"] ||
@@ -44,13 +59,13 @@ export async function fetchMangasMangaDex(page: number = 1, baseUrl: string) {
         ? `https://uploads.mangadex.org/covers/${item.id}/${coverArt.attributes.fileName}.256.jpg`
         : "";
 
-      return {
+      mangas.push({
         title,
         img: coverUrl,
         chapters: "0",
         url: item.id,
         description,
-      };
+      });
     });
 
     return mangas;
