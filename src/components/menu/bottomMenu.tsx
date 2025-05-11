@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -19,9 +20,24 @@ const menuItems = [
 
 export default function BottomMenu() {
   const pathname = usePathname();
+  const [position, setPosition] = useState<"top" | "bottom">("bottom");
+
+  useEffect(() => {
+    const savedPosition = localStorage.getItem("menuPosition");
+    if (savedPosition === "top" || savedPosition === "bottom") {
+      setPosition(savedPosition);
+    }
+  }, []);
 
   return (
-    <nav className="bg-[#140B1C] border-t border-neutral-800 flex justify-around py-2">
+    <nav
+      className={twMerge(
+        "bg-[#140B1C] border-neutral-800 flex justify-around py-2 z-50 w-full",
+        position === "top"
+          ? "border-b fixed top-0 mb-4"
+          : "border-t fixed bottom-0"
+      )}
+    >
       {menuItems.map(({ label, path, icon: Icon }) => {
         const active = pathname === path;
         return (
@@ -39,11 +55,6 @@ export default function BottomMenu() {
               )}
             >
               <Icon size={20} />
-              {/* {badge && (
-                <span className="absolute top-0 right-0 text-[10px] bg-rose-200 text-black font-bold px-1.5 py-0.5 rounded-full leading-none transform translate-x-1/2 -translate-y-1/2">
-                  {badge}
-                </span>
-              )} */}
             </div>
             <span
               className={twMerge(

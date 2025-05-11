@@ -2,12 +2,10 @@
 
 import { fetchMangasBrMangas } from "@/api/sources/br-mangas/fetchMangas";
 import { getAllSources } from "@/api/sources/getAllSources";
+import { fetchMangasMangaDex } from "@/api/sources/manga-dex/fetchMangas";
 import { fetchMangasMangaLivre } from "@/api/sources/manga-livre/fetchMangas";
-import { searchMangasMangaLivre } from "@/api/sources/manga-livre/searchMangas";
 import { fetchMangasSeitaCelestial } from "@/api/sources/seita-celestial/fetchMangas";
-import { searchMangasSeitaCelestial } from "@/api/sources/seita-celestial/searchMangas";
 import PopoverPage from "@/components/source/popover/page";
-import { Search } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { IoIosArrowDropleftCircle } from "react-icons/io";
 
@@ -33,7 +31,6 @@ export default function MangaLivrePage() {
   const [sources, setSources] = useState<{ name: string; id: string }[]>([]);
   const [activeSource, setActiveSource] = useState<string>("manga-livre");
 
-  const [showSearchInput, setShowSearchInput] = useState(false);
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [query, setQuery] = useState("");
 
@@ -41,10 +38,12 @@ export default function MangaLivrePage() {
     mangaLivre: { name: string; id: string; url: string } | null;
     seitaCelestial: { name: string; id: string; url: string } | null;
     brMangas: { name: string; id: string; url: string } | null;
+    mangaDex: { name: string; id: string; url: string } | null;
   }>({
     mangaLivre: null,
     seitaCelestial: null,
     brMangas: null,
+    mangaDex: null,
   });
 
   useEffect(() => {
@@ -60,6 +59,7 @@ export default function MangaLivrePage() {
             (s: Source) => s.name === "seita-celestial"
           ),
           brMangas: allSources.find((s: Source) => s.name === "br-mangas"),
+          mangaDex: allSources.find((s: Source) => s.name === "manga-dex"),
         };
 
         fetchAllMangas(1);
@@ -79,6 +79,7 @@ export default function MangaLivrePage() {
         mangaLivre: mangaLivreSource,
         seitaCelestial: seitaCelestialSource,
         brMangas: brMangasSource,
+        mangaDex: mangaDexSource,
       } = sourcesDataRef.current;
 
       if (!mangaLivreSource && !seitaCelestialSource) return;
@@ -137,6 +138,22 @@ export default function MangaLivrePage() {
           }
         }
 
+        if (activeSource === "manga-dex") {
+          if (mangaDexSource) {
+            const mangaDexResults = await fetchMangasMangaDex(
+              pageNum,
+              mangaDexSource.url
+            );
+            if (mangaDexResults && Array.isArray(mangaDexResults)) {
+              const taggedResults = mangaDexResults.map((manga) => ({
+                ...manga,
+                source: "manga-dex",
+              }));
+              allMangas = [...allMangas, ...taggedResults];
+            }
+          }
+        }
+
         if (allMangas.length === 0) {
           setHasMoreData(false);
         }
@@ -160,56 +177,10 @@ export default function MangaLivrePage() {
     async (pageNum: number, searchQuery: string) => {
       if (isLoadingRef.current || !searchQuery || !hasMoreData) return;
 
-      const {
-        mangaLivre: mangaLivreSource,
-        seitaCelestial: seitaCelestialSource,
-      } = sourcesDataRef.current;
-
       setLoading(true);
       isLoadingRef.current = true;
 
       try {
-        let allSearchResults: Manga[] = [];
-
-        if (activeSource === "manga-livre" && mangaLivreSource) {
-          const mangaLivreResults = await searchMangasMangaLivre(
-            mangaLivreSource.url,
-            searchQuery,
-            pageNum
-          );
-          if (mangaLivreResults && Array.isArray(mangaLivreResults)) {
-            const taggedResults = mangaLivreResults.map((manga) => ({
-              ...manga,
-              source: "manga-livre",
-            }));
-            allSearchResults = [...allSearchResults, ...taggedResults];
-          }
-        }
-
-        if (activeSource === "seita-celestial" && seitaCelestialSource) {
-          const seitaCelestialResults = await searchMangasSeitaCelestial(
-            seitaCelestialSource.url,
-            searchQuery,
-            pageNum
-          );
-          if (seitaCelestialResults && Array.isArray(seitaCelestialResults)) {
-            const taggedResults = seitaCelestialResults.map((manga) => ({
-              ...manga,
-              source: "seita-celestial",
-            }));
-            allSearchResults = [...allSearchResults, ...taggedResults];
-          }
-        }
-
-        if (allSearchResults.length === 0) {
-          setHasMoreData(false);
-        }
-
-        setMangas((prev) => {
-          return pageNum === 1
-            ? allSearchResults
-            : [...prev, ...allSearchResults];
-        });
       } catch (error) {
         console.error("Erro ao buscar mangas:", error);
       } finally {
@@ -219,25 +190,6 @@ export default function MangaLivrePage() {
     },
     [activeSource, hasMoreData]
   );
-
-  const handleSearch = useCallback(() => {
-    if (loading) return;
-    if (activeSource === "br-mangas") return;
-
-    if (query.trim() === "") {
-      resetSearch();
-      return;
-    }
-    if (isSearchMode) {
-      setMangas([]);
-      setPage(1);
-      setHasMoreData(true);
-      searchAllMangas(1, query);
-    }
-
-    setIsSearchMode(true);
-    setPage(1);
-  }, [query, loading, searchAllMangas]);
 
   const resetSearch = useCallback(() => {
     if (loading) return;
@@ -313,57 +265,7 @@ export default function MangaLivrePage() {
     <div className="flex flex-col h-screen gap-5 bg-neutral-900 text-white w-full">
       <div className="pt-4 px-5 flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          {!showSearchInput ? (
-            <>
-              <h1 className="text-2xl">Biblioteca de Mangás</h1>
-              <button
-                onClick={() => !loading && setShowSearchInput(true)}
-                className={`text-blue-500 hover:underline ${
-                  loading ? "opacity-50 cursor-not-allowed" : ""
-                }`}
-                disabled={loading}
-              >
-                Buscar
-              </button>
-            </>
-          ) : (
-            <div className="w-full flex items-center gap-2">
-              <input
-                autoFocus
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !loading) {
-                    handleSearch();
-                  } else if (e.key === "Escape") {
-                    resetSearch();
-                  }
-                }}
-                placeholder="Digite o nome do mangá..."
-                className="w-full px-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                disabled={loading}
-              />
-              <button
-                onClick={handleSearch}
-                className={`bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-md ${
-                  loading ? "opacity-50 cursor-not-allowed" : ""
-                }`}
-                disabled={loading}
-              >
-                <Search size={18} />
-              </button>
-              <button
-                onClick={resetSearch}
-                className={`bg-gray-500 hover:bg-gray-600 px-4 py-2 rounded-md ${
-                  loading ? "opacity-50 cursor-not-allowed" : ""
-                }`}
-                disabled={loading}
-              >
-                Cancelar
-              </button>
-            </div>
-          )}
+          <h1 className="text-2xl">Biblioteca de Mangás</h1>
         </div>
 
         {/* Seletor de fontes */}
@@ -400,6 +302,17 @@ export default function MangaLivrePage() {
             disabled={loading}
           >
             Br Mangas
+          </button>
+          <button
+            onClick={() => changeSource("manga-dex")}
+            className={`px-3 py-1 rounded-md text-sm ${
+              activeSource === "manga-dex"
+                ? "bg-blue-500 text-white"
+                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+            } ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+            disabled={loading}
+          >
+            MangaDex
           </button>
         </div>
       </div>

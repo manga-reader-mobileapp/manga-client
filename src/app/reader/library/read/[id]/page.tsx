@@ -8,6 +8,7 @@ import { updateLastChapter } from "@/api/library/updateLastChapter";
 import { fetchChaptersFromBrMangas } from "@/api/sources/br-mangas/fetchChapters";
 import { favoriteSavedManga } from "@/api/sources/geral/favoriteSavedManga";
 import { unfavoriteManga } from "@/api/sources/geral/unfavoriteManga";
+import { fetchChaptersFromMangaDex } from "@/api/sources/manga-dex/fetchChapters";
 import { fetchChaptersFromMangalivre } from "@/api/sources/manga-livre/fetchChapters";
 import { fetchChaptersFromSeitaCelestial } from "@/api/sources/seita-celestial/fetchChapters.";
 import Popup from "@/components/popup/page";
@@ -68,7 +69,11 @@ export default function MangaPage() {
     if (manga.sourceName === "manga-livre") {
       const response = await fetchChaptersFromMangalivre(url, manga.url);
 
-      if (!response) return;
+      if (!response) {
+        toast.error("Erro ao buscar capítulos.");
+
+        return;
+      }
       setChapters(response);
 
       setFirstChapter(
@@ -87,10 +92,14 @@ export default function MangaPage() {
     }
 
     if (manga.sourceName === "br-mangas") {
-      console.log(url, manga.url);
       const response = await fetchChaptersFromBrMangas(url, manga.url);
 
-      if (!response) return;
+      if (!response) {
+        toast.error("Erro ao buscar capítulos.");
+
+        return;
+      }
+
       setChapters(response);
 
       setFirstChapter(
@@ -113,7 +122,40 @@ export default function MangaPage() {
         url + "/comics/" + manga.url
       );
 
-      if (!response) return;
+      if (!response) {
+        toast.error("Erro ao buscar capítulos.");
+
+        return;
+      }
+
+      setChapters(response);
+
+      setFirstChapter(
+        extractChapterNumber(response[response.length - 1].title)
+      );
+
+      const lastChapter = extractChapterNumber(response[0].title);
+
+      setLastChapter(lastChapter);
+
+      if (lastChapter.number !== extractChapterNumber(manga.chapters).number) {
+        await updateLastChapter(mangaId, {
+          chapter: lastChapter.raw,
+        });
+      }
+    }
+
+    if (manga.sourceName === "manga-dex") {
+      const response = await fetchChaptersFromMangaDex(
+        `${url}/manga/${manga.url}/feed`
+      );
+
+      if (!response) {
+        toast.error("Erro ao buscar capítulos.");
+
+        return;
+      }
+
       setChapters(response);
 
       setFirstChapter(
@@ -289,6 +331,16 @@ export default function MangaPage() {
                     if (manga.sourceName === "seita-celestial") {
                       window.open(
                         manga.sourceUrl + "/comics/" + manga.url,
+                        "_blank"
+                      );
+                    }
+
+                    if (manga.sourceName === "manga-dex") {
+                      window.open(
+                        "https://mangadex.org" +
+                          "/title/" +
+                          manga.url +
+                          "/feed",
                         "_blank"
                       );
                     }

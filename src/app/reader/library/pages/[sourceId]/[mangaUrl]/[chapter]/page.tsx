@@ -4,6 +4,8 @@ import { getInfosPages } from "@/api/library/unique/getInfosPages";
 import { updateLastRead } from "@/api/library/unique/updateLastRead";
 import { fetchChaptersFromBrMangas } from "@/api/sources/br-mangas/fetchChapters";
 import { fetchPagesFromBrMangas } from "@/api/sources/br-mangas/fetchPages";
+import { fetchChaptersFromMangaDex } from "@/api/sources/manga-dex/fetchChapters";
+import { fetchPagesFromMangaDex } from "@/api/sources/manga-dex/fetchPages";
 import { fetchChaptersFromMangalivre } from "@/api/sources/manga-livre/fetchChapters";
 import { fetchPagesFromMangalivre } from "@/api/sources/manga-livre/fetchPages";
 import { fetchChaptersFromSeitaCelestial } from "@/api/sources/seita-celestial/fetchChapters.";
@@ -13,6 +15,11 @@ import { Chapter, ObjectPages } from "@/type/types";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+
+type NavigationResult =
+  | { type: "chapter"; data: Chapter }
+  | { type: "boundary"; isLast: boolean }
+  | { type: "error"; message: string };
 
 export default function MangaChapterViewer() {
   const { back, push } = useRouter();
@@ -30,6 +37,8 @@ export default function MangaChapterViewer() {
     images: [],
   });
   const [chapters, setChapters] = useState<Chapter[]>([]);
+
+  const [mangaDexChapter, setMangaDexChapter] = useState<string>("");
   // Estado para rastrear a página atual que o usuário está visualizando
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -151,7 +160,11 @@ export default function MangaChapterViewer() {
     if (sourceId === "manga-livre") {
       const response = await fetchChaptersFromMangalivre(url, mangaUrl);
 
-      if (!response) return;
+      if (!response) {
+        toast.error("Erro ao buscar capítulos.");
+
+        return;
+      }
       setChapters(response);
     }
 
@@ -160,15 +173,41 @@ export default function MangaChapterViewer() {
         url + "/comics/" + mangaUrl
       );
 
-      if (!response) return;
+      if (!response) {
+        toast.error("Erro ao buscar capítulos.");
+
+        return;
+      }
       setChapters(response);
     }
 
     if (sourceId === "br-mangas") {
       const response = await fetchChaptersFromBrMangas(url, mangaUrl);
 
-      if (!response) return;
+      if (!response) {
+        toast.error("Erro ao buscar capítulos.");
+
+        return;
+      }
       setChapters(response);
+    }
+
+    if (sourceId === "manga-dex") {
+      const response = await fetchChaptersFromMangaDex(
+        `${url}/manga/${mangaUrl}/feed`
+      );
+
+      if (!response) {
+        toast.error("Erro ao buscar capítulos.");
+
+        return;
+      }
+
+      setChapters(response);
+
+      setMangaDexChapter(
+        response.find((c) => c.chapterSlug === chapter)?.title || ""
+      );
     }
   };
 
@@ -180,15 +219,17 @@ export default function MangaChapterViewer() {
 
       const source = await getInfosPages(sourceId, mangaUrl);
 
+      console.log(source);
+
+      if (!source) {
+        back();
+
+        return;
+      }
+
+      setManga(source);
+
       if (sourceId === "manga-livre") {
-        if (!source) {
-          back();
-
-          return;
-        }
-
-        setManga(source);
-
         const response = await fetchPagesFromMangalivre(
           `${source.url}/manga/${mangaUrl}/${chapter}`
         );
@@ -226,6 +267,20 @@ export default function MangaChapterViewer() {
         const response = await fetchPagesFromBrMangas(
           `${source.url}/manga/${mangaUrl}/${chapter}`
         );
+
+        if (response) {
+          setPages(response);
+
+          setIsLoading(false);
+
+          getChapters(source.url);
+
+          return;
+        }
+      }
+
+      if (sourceId === "manga-dex") {
+        const response = await fetchPagesFromMangaDex(chapter);
 
         if (response) {
           setPages(response);
@@ -411,6 +466,31 @@ export default function MangaChapterViewer() {
     return nextChapter;
   }
 
+  function navegationMangaDex(direction: "next" | "prev"): NavigationResult {
+    const index = chapters.findIndex((ch) => ch.chapterSlug === chapter);
+
+    if (index === -1) {
+      return {
+        type: "error",
+        message: "Capítulo atual não encontrado.",
+      };
+    }
+
+    const nextIndex = direction === "prev" ? index + 1 : index - 1;
+
+    if (nextIndex < 0 || nextIndex >= chapters.length) {
+      return {
+        type: "boundary",
+        isLast: true,
+      };
+    }
+
+    return {
+      type: "chapter",
+      data: chapters[nextIndex],
+    };
+  }
+
   function isFirstOrLastChapter(): { isFirst: boolean; isLast: boolean } {
     if (!chapters.length) return { isFirst: false, isLast: false };
 
@@ -538,7 +618,11 @@ export default function MangaChapterViewer() {
             {/* Capítulo e Página */}
             <div className="flex flex-col items-center">
               <div className="font-semibold text-sm">
-                Capítulo {extractChapterNumber(chapter).raw}
+                {sourceId === "manga-dex" ? (
+                  <>{mangaDexChapter}</>
+                ) : (
+                  <>Capítulo {extractChapterNumber(chapter).raw}</>
+                )}
               </div>
               <div className="text-xs text-zinc-300">
                 Página {currentPage} de {pages.images.length}
@@ -549,6 +633,26 @@ export default function MangaChapterViewer() {
             <div className="flex space-x-4">
               <button
                 onClick={() => {
+                  if (sourceId === "manga-dex") {
+                    const url = navegationMangaDex("prev");
+
+                    if (url.type === "error") {
+                      push("/reader/library");
+
+                      return;
+                    }
+
+                    if (url.type === "boundary") {
+                      push(`/reader/library/read/${manga.id}`);
+
+                      return;
+                    }
+
+                    handlePushChapter(url.data);
+
+                    return;
+                  }
+
                   const url = navigateChapter("prev");
                   if (url) {
                     handlePushChapter(url);
@@ -570,6 +674,34 @@ export default function MangaChapterViewer() {
               </button>
               <button
                 onClick={async () => {
+                  if (sourceId === "manga-dex") {
+                    const index = chapters.findIndex(
+                      (ch) => ch.chapterSlug === chapter
+                    );
+
+                    await updateLastRead(manga.id, {
+                      chapter: extractChapterNumber(chapters[index].title).raw,
+                    });
+
+                    const url = navegationMangaDex("next");
+
+                    if (url.type === "error") {
+                      push("/reader/library");
+
+                      return;
+                    }
+
+                    if (url.type === "boundary") {
+                      push(`/reader/library/read/${manga.id}`);
+
+                      return;
+                    }
+
+                    handlePushChapter(url.data);
+
+                    return;
+                  }
+
                   await updateLastRead(manga.id, {
                     chapter: extractChapterNumber(chapter).raw,
                   });
@@ -589,7 +721,7 @@ export default function MangaChapterViewer() {
                   }
 
                   toast.error("Erro ao buscar capitulo seguinte");
-                  push("reader/library");
+                  push("/ qreader/library");
                 }}
                 className={`text-sm transition text-zinc-300 hover:text-white`}
               >
